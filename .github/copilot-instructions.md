@@ -22,6 +22,11 @@ Build a foundation for a Parloa conversational assistant.
 
 ## Change workflow
 - Each change must be small, reviewable and focused on one thing.
+- One commit = one small vertical feature slice.
+- A single commit may include code + tests + minimal docs, as long as all changes belong to the same feature.
+- Split into multiple commits only when there are multiple responsibilities or independent features.
+- Prefer small commits (ideally 1-5 files) that are easy to review and revert.
+- If a proposed change touches multiple concerns, stop and propose a commit split plan before committing.
 - Write tests for any new code before considering the change complete.
 - Run tests: `uv run pytest`
 - Commit changes to git only after approval and passing tests.
