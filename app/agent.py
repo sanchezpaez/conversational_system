@@ -1,6 +1,7 @@
 import logging
 
 from app import backend
+from app.dialogue_policy import build_clarification_reply, get_missing_fields
 from app.llm import LLMClient
 from app.models import ChatResponse
 
@@ -29,6 +30,23 @@ class SupportAgent:
 
         logger.info("intent=%s", intent_decision.intent)
         logger.info("entities=%s", entities.model_dump())
+
+        missing_fields = get_missing_fields(intent_decision.intent, entities)
+        if missing_fields:
+            logger.info("missing_fields=%s", missing_fields)
+            backend_result = {
+                "ok": False,
+                "code": "need_clarification",
+                "missing_fields": missing_fields,
+            }
+            reply = build_clarification_reply(intent_decision.intent, missing_fields)
+            logger.info("final_reply=%s", reply)
+            return ChatResponse(
+                intent=intent_decision.intent,
+                entities=entities,
+                backend_result=backend_result,
+                reply=reply,
+            )
 
         if intent_decision.intent == "order_status":
             backend_result = backend.get_order_status(entities.order_id)

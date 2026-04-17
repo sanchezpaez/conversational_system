@@ -9,9 +9,21 @@ Python prototype of a customer support AI agent using FastAPI and the OpenAI API
 - Pipeline:
 	1. Intent classification (`order_status`, `change_booking`, `fallback`) using structured prompts and few-shot examples
 	2. Entity extraction (`order_id`, `date`) with JSON output
-	3. Mock backend function call
-	4. Final response generation via prompt templates
+   3. Clarification step when required entities are missing
+   4. Mock backend function call
+   5. Final response generation via prompt templates
 - Simple logging of decisions
+
+## Conversation contract (v1)
+
+- Ask for missing critical data before backend calls.
+- Ask one concise clarification question whenever possible.
+- For `order_status`, require `order_id`.
+- For `change_booking`, require both `order_id` and `date`.
+- Keep reply tone short, clear, and action-oriented.
+- If intent is unclear, route to `fallback` and offer support escalation.
+- Never invent order IDs or dates.
+- Log intent, entities, missing fields, backend result, and final reply.
 
 ## Quick Start
 
