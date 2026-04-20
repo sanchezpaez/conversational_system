@@ -158,3 +158,42 @@ Run evaluation script with real OpenAI API:
 ```bash
 uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
 ```
+
+## Roadmap
+
+### Phase 1 — Conversational quality *(in progress)*
+- [x] Core pipeline: intent + entities + backend + response
+- [x] Clarification policy before calling backend
+- [x] Multi-turn memory per `session_id`
+- [ ] Conversational error recovery: useful response + next step when backend fails
+- [ ] Mid-conversation intent change handling
+- [ ] Empathetic tone in fallback and error responses
+
+### Phase 2 — Robust entity extraction
+- [ ] Regex + local normalisation for `order_id` and `date` (reduce LLM dependency)
+- [ ] Semantic entity validation (e.g. date cannot be in the past for a booking change)
+- [ ] Basic anaphora resolution ("that order", "the same date")
+
+### Phase 3 — Evaluation and observability
+- [ ] Automated evaluation script with labelled test cases
+- [ ] Per-session metrics: turns to resolution, clarification rate, success rate
+- [ ] Structured JSON logging for full traceability
+
+### Phase 4 — Multilingual support
+- [ ] Automatic language detection from user message
+- [ ] Prompts and responses in detected language (English and Spanish as v1)
+
+### Phase 5 — Integrations
+- [ ] Session persistence in a database (SQLite for dev, PostgreSQL for prod)
+- [ ] Basic authentication for `/chat` endpoint
+- [ ] Replace mock backend with real API calls
+
+### Phase 6 — UI and experience
+- [ ] Minimal chat web interface (Gradio or plain HTML/JS)
+- [ ] Quick-action buttons ("check my order", "change date")
+- [ ] Visible conversation history in UI
+
+### Phase 7 — Production
+- [ ] Dockerfile and docker-compose
+- [ ] CI/CD with GitHub Actions (lint + tests on PR)
+- [ ] Environment-based configuration (dev / staging / prod)
