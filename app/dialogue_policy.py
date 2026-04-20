@@ -32,3 +32,24 @@ def build_clarification_reply(intent: IntentName, missing_fields: list[str]) -> 
 
     missing_text = ", ".join(missing_fields)
     return f"Could you provide the following details: {missing_text}?"
+
+
+ERROR_REPLIES: dict[str, str] = {
+    "missing_order_id": (
+        "I couldn't find an order ID in your message. "
+        "Could you share it so I can help you?"
+    ),
+    "fallback": (
+        "I wasn't able to handle this automatically. "
+        "A support specialist will follow up with you shortly."
+    ),
+}
+
+_DEFAULT_ERROR_REPLY = (
+    "Something went wrong on our end. "
+    "Please try again or contact support if the problem persists."
+)
+
+
+def build_error_reply(code: str) -> str:
+    return ERROR_REPLIES.get(code, _DEFAULT_ERROR_REPLY)

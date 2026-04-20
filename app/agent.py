@@ -2,7 +2,7 @@ import logging
 
 from app import backend
 from app.conversation_memory import ConversationState, InMemoryConversationMemory
-from app.dialogue_policy import build_clarification_reply, get_missing_fields
+from app.dialogue_policy import build_clarification_reply, build_error_reply, get_missing_fields
 from app.llm import LLMClient
 from app.models import ChatResponse, EntityExtraction
 
@@ -106,7 +106,7 @@ class SupportAgent:
 
     def _render_reply(self, intent: str, backend_result: dict) -> str:
         if not backend_result.get("ok", False):
-            return backend_result.get("message", "I could not process your request.")
+            return build_error_reply(backend_result.get("code", ""))
 
         template = RESPONSE_TEMPLATES[intent]
         return template.format(**backend_result)

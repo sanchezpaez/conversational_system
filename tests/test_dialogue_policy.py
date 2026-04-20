@@ -1,6 +1,6 @@
 import pytest
 
-from app.dialogue_policy import build_clarification_reply, get_missing_fields
+from app.dialogue_policy import build_clarification_reply, build_error_reply, get_missing_fields
 from app.models import EntityExtraction
 
 
@@ -50,4 +50,18 @@ def test_get_missing_fields_contract(intent, entities, expected_missing):
 )
 def test_build_clarification_reply(intent, missing_fields, expected_substring):
     reply = build_clarification_reply(intent, missing_fields)
+    assert expected_substring in reply
+
+
+@pytest.mark.parametrize(
+    "code,expected_substring",
+    [
+        ("missing_order_id", "order ID"),
+        ("fallback", "specialist"),
+        ("unknown_code", "went wrong"),
+        ("", "went wrong"),
+    ],
+)
+def test_build_error_reply(code, expected_substring):
+    reply = build_error_reply(code)
     assert expected_substring in reply
