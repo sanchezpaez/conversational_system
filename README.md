@@ -166,7 +166,7 @@ uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
 - [x] Clarification policy before calling backend
 - [x] Multi-turn memory per `session_id`
 - [x] Conversational error recovery: useful response + next step when backend fails
-- [ ] Mid-conversation intent change handling
+- [x] Mid-conversation intent change handling
 - [ ] Empathetic tone in fallback and error responses
 
 ### Phase 2 — Robust entity extraction
