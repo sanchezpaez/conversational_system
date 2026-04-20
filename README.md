@@ -165,7 +165,7 @@ uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
 - [x] Core pipeline: intent + entities + backend + response
 - [x] Clarification policy before calling backend
 - [x] Multi-turn memory per `session_id`
-- [ ] Conversational error recovery: useful response + next step when backend fails
+- [x] Conversational error recovery: useful response + next step when backend fails
 - [ ] Mid-conversation intent change handling
 - [ ] Empathetic tone in fallback and error responses
 
