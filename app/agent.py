@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 
 RESPONSE_TEMPLATES = {
     "order_status": (
-        "I checked order {order_id}. Current status: {status}."
+        "Good news — I found order {order_id}. Current status: {status}."
     ),
     "change_booking": (
-        "Booking updated for order {order_id}. New date: {new_date}."
+        "All done! I've updated order {order_id} to the new date: {new_date}."
     ),
     "fallback": (
-        "I could not complete this automatically. {message}"
+        "I'm sorry I wasn't able to handle this automatically. {message}"
     ),
 }
 

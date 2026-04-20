@@ -197,3 +197,6 @@ uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
 - [ ] Dockerfile and docker-compose
 - [ ] CI/CD with GitHub Actions (lint + tests on PR)
 - [ ] Environment-based configuration (dev / staging / prod)
+
+### Future ideas
+- [ ] Sentiment analysis: detect frustration or urgency and adapt reply tone dynamically
