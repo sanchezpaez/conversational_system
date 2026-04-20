@@ -23,7 +23,7 @@ def build_agent() -> SupportAgent:
 def chat(request: ChatRequest) -> ChatResponse:
     try:
         agent = build_agent()
-        return agent.process(request.message)
+        return agent.process(request.message, request.session_id)
     except ConfigurationError as error:
         raise HTTPException(
             status_code=503,

@@ -32,6 +32,18 @@ def test_chat_with_valid_message_returns_chat_response(client, mock_llm_client):
         assert "reply" in data
 
 
+def test_chat_accepts_session_id(client, mock_llm_client):
+    with patch("main.LLMClient") as MockLLM:
+        MockLLM.return_value = mock_llm_client
+
+        response = client.post(
+            "/chat",
+            json={"message": "Where is my order AB-123?", "session_id": "session-1"},
+        )
+
+        assert response.status_code == 200
+
+
 def test_chat_endpoint_validates_input(client):
     """Test /chat endpoint rejects empty messages."""
     response = client.post("/chat", json={"message": ""})

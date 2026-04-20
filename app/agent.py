@@ -1,9 +1,10 @@
 import logging
 
 from app import backend
+from app.conversation_memory import ConversationState, InMemoryConversationMemory
 from app.dialogue_policy import build_clarification_reply, get_missing_fields
 from app.llm import LLMClient
-from app.models import ChatResponse
+from app.models import ChatResponse, EntityExtraction
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +22,26 @@ RESPONSE_TEMPLATES = {
 
 
 class SupportAgent:
-    def __init__(self, llm_client: LLMClient) -> None:
+    def __init__(self, llm_client: LLMClient, memory: InMemoryConversationMemory | None = None) -> None:
         self.llm_client = llm_client
+        self.memory = memory or InMemoryConversationMemory()
 
-    def process(self, message: str) -> ChatResponse:
-        intent_decision = self.llm_client.classify_intent(message)
-        entities = self.llm_client.extract_entities(message)
+    def process(self, message: str, session_id: str | None = None) -> ChatResponse:
+        prior_state = self.memory.get(session_id) if session_id else ConversationState()
 
-        logger.info("intent=%s", intent_decision.intent)
+        if prior_state.pending_clarification and prior_state.last_intent is not None:
+            intent_name = prior_state.last_intent
+            fresh_entities = self.llm_client.extract_entities(message)
+            entities = self._merge_entities(prior_state.last_entities, fresh_entities)
+        else:
+            intent_decision = self.llm_client.classify_intent(message)
+            intent_name = intent_decision.intent
+            entities = self.llm_client.extract_entities(message)
+
+        logger.info("intent=%s", intent_name)
         logger.info("entities=%s", entities.model_dump())
 
-        missing_fields = get_missing_fields(intent_decision.intent, entities)
+        missing_fields = get_missing_fields(intent_name, entities)
         if missing_fields:
             logger.info("missing_fields=%s", missing_fields)
             backend_result = {
@@ -39,32 +49,59 @@ class SupportAgent:
                 "code": "need_clarification",
                 "missing_fields": missing_fields,
             }
-            reply = build_clarification_reply(intent_decision.intent, missing_fields)
+            reply = build_clarification_reply(intent_name, missing_fields)
+
+            if session_id:
+                self.memory.upsert(
+                    session_id,
+                    ConversationState(
+                        last_intent=intent_name,
+                        last_entities=entities,
+                        pending_clarification=missing_fields,
+                    ),
+                )
+
             logger.info("final_reply=%s", reply)
             return ChatResponse(
-                intent=intent_decision.intent,
+                intent=intent_name,
                 entities=entities,
                 backend_result=backend_result,
                 reply=reply,
             )
 
-        if intent_decision.intent == "order_status":
+        if intent_name == "order_status":
             backend_result = backend.get_order_status(entities.order_id)
-        elif intent_decision.intent == "change_booking":
+        elif intent_name == "change_booking":
             backend_result = backend.change_booking(entities.order_id, entities.date)
         else:
             backend_result = backend.fallback_support()
 
+        if session_id:
+            self.memory.upsert(
+                session_id,
+                ConversationState(
+                    last_intent=intent_name,
+                    last_entities=entities,
+                    pending_clarification=[],
+                ),
+            )
+
         logger.info("backend_result=%s", backend_result)
 
-        reply = self._render_reply(intent_decision.intent, backend_result)
+        reply = self._render_reply(intent_name, backend_result)
         logger.info("final_reply=%s", reply)
 
         return ChatResponse(
-            intent=intent_decision.intent,
+            intent=intent_name,
             entities=entities,
             backend_result=backend_result,
             reply=reply,
+        )
+
+    def _merge_entities(self, previous: EntityExtraction, current: EntityExtraction) -> EntityExtraction:
+        return EntityExtraction(
+            order_id=current.order_id or previous.order_id,
+            date=current.date or previous.date,
         )
 
     def _render_reply(self, intent: str, backend_result: dict) -> str:

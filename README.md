@@ -25,6 +25,17 @@ Python prototype of a customer support AI agent using FastAPI and the OpenAI API
 - Never invent order IDs or dates.
 - Log intent, entities, missing fields, backend result, and final reply.
 
+## Session memory (v1)
+
+- Multi-turn memory is supported via optional `session_id` in `/chat` requests.
+- When clarification is required, the agent stores missing context per `session_id`.
+- Next user turns in the same session can provide only missing fields (for example, just date).
+
+Example multi-turn flow:
+- Turn 1: `{"message": "I need to change my booking", "session_id": "s1"}`
+- Turn 2: `{"message": "Order 7821", "session_id": "s1"}`
+- Turn 3: `{"message": "2026-05-10", "session_id": "s1"}`
+
 ## Quick Start
 
 ### Option 1: Try the demo (no API key needed)
@@ -108,6 +119,7 @@ app/
   agent.py          # Main agent pipeline
   backend.py        # Mock backend handlers
   config.py         # .env loading and config
+   conversation_memory.py  # In-memory per-session state
   exceptions.py     # Custom exceptions
   llm.py            # OpenAI client and prompts
   models.py         # Pydantic models
