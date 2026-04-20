@@ -29,13 +29,27 @@ class SupportAgent:
     def process(self, message: str, session_id: str | None = None) -> ChatResponse:
         prior_state = self.memory.get(session_id) if session_id else ConversationState()
 
+        intent_decision = self.llm_client.classify_intent(message)
+        intent_name = intent_decision.intent
+
+        if (
+            prior_state.pending_clarification
+            and prior_state.last_intent is not None
+            and intent_name != prior_state.last_intent
+        ):
+            logger.info(
+                "intent_changed from=%s to=%s — resetting state",
+                prior_state.last_intent,
+                intent_name,
+            )
+            prior_state = ConversationState()
+            if session_id:
+                self.memory.upsert(session_id, ConversationState())
+
         if prior_state.pending_clarification and prior_state.last_intent is not None:
-            intent_name = prior_state.last_intent
             fresh_entities = self.llm_client.extract_entities(message)
             entities = self._merge_entities(prior_state.last_entities, fresh_entities)
         else:
-            intent_decision = self.llm_client.classify_intent(message)
-            intent_name = intent_decision.intent
             entities = self.llm_client.extract_entities(message)
 
         logger.info("intent=%s", intent_name)

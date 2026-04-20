@@ -87,3 +87,27 @@ def test_pending_clarification_clears_after_success(mock_llm_client):
 
     state = agent.memory.get("clear-1")
     assert state.pending_clarification == []
+
+
+def test_intent_change_mid_conversation_resets_state(mock_llm_client):
+    """If the user switches intent while clarification is pending, the agent resets
+    and handles the new intent from scratch."""
+    agent = SupportAgent(llm_client=mock_llm_client)
+
+    # Turn 1: change_booking, no entities → agent asks for clarification
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="change_booking")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id=None, date=None)
+    first = agent.process("I want to change my booking", session_id="switch-1")
+    assert first.backend_result["code"] == "need_clarification"
+
+    # Turn 2: user switches to order_status with a known order_id
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="order_status")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id="ORD-42", date=None)
+    second = agent.process("Actually, just check order ORD-42", session_id="switch-1")
+    assert second.intent == "order_status"
+    assert second.backend_result["ok"] is True
+    assert second.backend_result["order_id"] == "ORD-42"
+    # Pending clarification must be cleared
+    state = agent.memory.get("switch-1")
+    assert state.pending_clarification == []
+    assert state.last_intent == "order_status"
