@@ -161,13 +161,13 @@ uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
 
 ## Roadmap
 
-### Phase 1 — Conversational quality *(in progress)*
+### Phase 1 — Conversational quality *(complete)*
 - [x] Core pipeline: intent + entities + backend + response
 - [x] Clarification policy before calling backend
 - [x] Multi-turn memory per `session_id`
 - [x] Conversational error recovery: useful response + next step when backend fails
 - [x] Mid-conversation intent change handling
-- [ ] Empathetic tone in fallback and error responses
+- [x] Empathetic tone in fallback and error responses
 
 ### Phase 2 — Robust entity extraction
 - [ ] Regex + local normalisation for `order_id` and `date` (reduce LLM dependency)
