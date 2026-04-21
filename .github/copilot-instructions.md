@@ -27,6 +27,7 @@ Build a foundation for a Parloa conversational assistant.
 	2. Wait for explicit user OK.
 	3. Implement the changes.
 	4. Show results and test output.
+	4.1. Provide a step-by-step walkthrough in execution order (what runs first, next, and why), with file-by-file review pointers.
 	5. Wait for explicit user OK before commit.
 	6. Commit only after that final OK.
 - One commit = one small vertical feature slice.
