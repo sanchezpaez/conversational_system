@@ -3,6 +3,7 @@ import json
 from openai import OpenAI
 
 from app.config import get_openai_api_key
+from app.entity_parser import extract_entities_locally
 from app.models import EntityExtraction, IntentDecision
 
 
@@ -57,6 +58,10 @@ class LLMClient:
         return IntentDecision.model_validate(raw_json)
 
     def extract_entities(self, user_message: str) -> EntityExtraction:
+        local_entities = extract_entities_locally(user_message)
+        if local_entities.order_id and local_entities.date:
+            return local_entities
+
         messages = [
             {
                 "role": "system",
@@ -73,7 +78,11 @@ class LLMClient:
         ]
 
         raw_json = self._chat_json(messages)
-        return EntityExtraction.model_validate(raw_json)
+        llm_entities = EntityExtraction.model_validate(raw_json)
+        return EntityExtraction(
+            order_id=local_entities.order_id or llm_entities.order_id,
+            date=local_entities.date or llm_entities.date,
+        )
 
     def _chat_json(self, messages: list[dict]) -> dict:
         response = self.client.chat.completions.create(
