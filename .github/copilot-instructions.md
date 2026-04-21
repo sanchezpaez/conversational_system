@@ -22,6 +22,13 @@ Build a foundation for a Parloa conversational assistant.
 
 ## Change workflow
 - Each change must be small, reviewable and focused on one thing.
+- Required approval flow for every slice:
+	1. Propose the exact planned changes (scope + files + tests).
+	2. Wait for explicit user OK.
+	3. Implement the changes.
+	4. Show results and test output.
+	5. Wait for explicit user OK before commit.
+	6. Commit only after that final OK.
 - One commit = one small vertical feature slice.
 - A single commit may include code + tests + minimal docs, as long as all changes belong to the same feature.
 - Split into multiple commits only when there are multiple responsibilities or independent features.
