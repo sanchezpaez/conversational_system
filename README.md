@@ -159,6 +159,24 @@ Run evaluation script with real OpenAI API:
 uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
 ```
 
+## Project evolution (summary)
+
+- v0: FastAPI foundation with `/chat` endpoint
+- v1.0: Core conversational pipeline (intent + entities + backend mock + response)
+- v1.1: Clarification policy for missing required fields before backend calls
+- v1.2: Multi-turn memory by `session_id`
+- v1.3: Conversational error recovery with actionable replies
+- v1.4: Mid-conversation intent switch handling
+- v1.5: More empathetic tone in fallback and error replies
+- v2.0: Local regex-based entity extraction + date normalization
+
+## Agentic evolution (post-roadmap)
+
+- **Stage A — Agentic-lite router**: constrained tool-calling over existing tools with strict guardrails.
+- **Stage B — Adaptive execution**: dynamic tool selection, retry policy, and confidence thresholds.
+- **Stage C — Planner/Critic (optional)**: multi-step planning only for complex requests with clear benefit.
+- **Exit criteria per stage**: track success rate, clarification rate, average turns to resolution, and regression thresholds before rollout.
+
 ## Roadmap
 
 ### Phase 1 — Conversational quality *(complete)*
