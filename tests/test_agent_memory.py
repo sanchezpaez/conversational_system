@@ -111,3 +111,50 @@ def test_intent_change_mid_conversation_resets_state(mock_llm_client):
     state = agent.memory.get("switch-1")
     assert state.pending_clarification == []
     assert state.last_intent == "order_status"
+
+
+def test_anaphora_uses_previous_order_for_change_booking(mock_llm_client):
+    agent = SupportAgent(llm_client=mock_llm_client)
+
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="order_status")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id="AB-123", date=None)
+    first = agent.process("Where is my order AB-123?", session_id="ana-1")
+    assert first.backend_result["ok"] is True
+
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="change_booking")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id=None, date="2026-06-10")
+    second = agent.process("Can you change that order to 2026-06-10?", session_id="ana-1")
+
+    assert second.backend_result["ok"] is True
+    assert second.backend_result["order_id"] == "AB-123"
+    assert second.backend_result["new_date"] == "2026-06-10"
+
+
+def test_anaphora_uses_previous_date_when_user_says_same_date(mock_llm_client):
+    agent = SupportAgent(llm_client=mock_llm_client)
+
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="change_booking")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id="7821", date="2026-06-01")
+    first = agent.process("Change order 7821 to 2026-06-01", session_id="ana-2")
+    assert first.backend_result["ok"] is True
+
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="change_booking")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id="7821", date=None)
+    second = agent.process("Actually use the same date", session_id="ana-2")
+
+    assert second.backend_result["ok"] is True
+    assert second.backend_result["order_id"] == "7821"
+    assert second.backend_result["new_date"] == "2026-06-01"
+
+
+def test_anaphora_does_not_invent_order_without_context(mock_llm_client):
+    agent = SupportAgent(llm_client=mock_llm_client)
+
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="change_booking")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id=None, date="2026-06-10")
+
+    result = agent.process("Please change that order to 2026-06-10", session_id="ana-3")
+
+    assert result.backend_result["ok"] is False
+    assert result.backend_result["code"] == "need_clarification"
+    assert result.backend_result["missing_fields"] == ["order_id"]

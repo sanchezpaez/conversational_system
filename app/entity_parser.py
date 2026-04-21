@@ -54,6 +54,18 @@ _DATE_FORMATS = (
     "%d %b %Y",
 )
 
+_PREVIOUS_ORDER_REFERENCE_PATTERNS = [
+    re.compile(r"\bthat\s+order\b", re.IGNORECASE),
+    re.compile(r"\bsame\s+order\b", re.IGNORECASE),
+    re.compile(r"\bthat\s+booking\b", re.IGNORECASE),
+]
+
+_PREVIOUS_DATE_REFERENCE_PATTERNS = [
+    re.compile(r"\bthe\s+same\s+date\b", re.IGNORECASE),
+    re.compile(r"\bsame\s+date\b", re.IGNORECASE),
+    re.compile(r"\bthat\s+date\b", re.IGNORECASE),
+]
+
 
 def extract_entities_locally(message: str) -> EntityExtraction:
     """Extract order_id and date from raw user text using local regex rules.
@@ -104,3 +116,13 @@ def _normalize_date(raw_date: str) -> str | None:
             continue
 
     return None
+
+
+def references_previous_order(message: str) -> bool:
+    """Return True when text refers to a previously mentioned order."""
+    return any(pattern.search(message) for pattern in _PREVIOUS_ORDER_REFERENCE_PATTERNS)
+
+
+def references_previous_date(message: str) -> bool:
+    """Return True when text refers to a previously mentioned date."""
+    return any(pattern.search(message) for pattern in _PREVIOUS_DATE_REFERENCE_PATTERNS)

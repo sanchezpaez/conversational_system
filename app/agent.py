@@ -4,6 +4,7 @@ from datetime import date
 from app import backend
 from app.conversation_memory import ConversationState, InMemoryConversationMemory
 from app.dialogue_policy import build_clarification_reply, build_error_reply, get_missing_fields
+from app.entity_parser import references_previous_date, references_previous_order
 from app.llm import LLMClient
 from app.models import ChatResponse, EntityExtraction
 
@@ -52,6 +53,8 @@ class SupportAgent:
             entities = self._merge_entities(prior_state.last_entities, fresh_entities)
         else:
             entities = self.llm_client.extract_entities(message)
+
+        entities = self._resolve_anaphora_entities(message, entities, prior_state.last_entities)
 
         logger.info("intent=%s", intent_name)
         logger.info("entities=%s", entities.model_dump())
@@ -142,3 +145,20 @@ class SupportAgent:
             return False
 
         return parsed_date < date.today()
+
+    def _resolve_anaphora_entities(
+        self,
+        message: str,
+        current_entities: EntityExtraction,
+        previous_entities: EntityExtraction,
+    ) -> EntityExtraction:
+        resolved_order_id = current_entities.order_id
+        resolved_date = current_entities.date
+
+        if not resolved_order_id and previous_entities.order_id and references_previous_order(message):
+            resolved_order_id = previous_entities.order_id
+
+        if not resolved_date and previous_entities.date and references_previous_date(message):
+            resolved_date = previous_entities.date
+
+        return EntityExtraction(order_id=resolved_order_id, date=resolved_date)
