@@ -189,7 +189,7 @@ uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
 
 ### Phase 2 — Robust entity extraction
 - [x] Regex + local normalisation for `order_id` and `date` (reduce LLM dependency)
-- [ ] Semantic entity validation (e.g. date cannot be in the past for a booking change)
+- [x] Semantic entity validation (e.g. date cannot be in the past for a booking change)
 - [ ] Basic anaphora resolution ("that order", "the same date")
 
 ### Phase 3 — Evaluation and observability

@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 
 from app import backend
 from app.conversation_memory import ConversationState, InMemoryConversationMemory
@@ -86,7 +87,13 @@ class SupportAgent:
         if intent_name == "order_status":
             backend_result = backend.get_order_status(entities.order_id)
         elif intent_name == "change_booking":
-            backend_result = backend.change_booking(entities.order_id, entities.date)
+            if self._is_past_iso_date(entities.date):
+                backend_result = {
+                    "ok": False,
+                    "code": "date_in_past",
+                }
+            else:
+                backend_result = backend.change_booking(entities.order_id, entities.date)
         else:
             backend_result = backend.fallback_support()
 
@@ -124,3 +131,14 @@ class SupportAgent:
 
         template = RESPONSE_TEMPLATES[intent]
         return template.format(**backend_result)
+
+    def _is_past_iso_date(self, raw_date: str | None) -> bool:
+        if not raw_date:
+            return False
+
+        try:
+            parsed_date = date.fromisoformat(raw_date)
+        except ValueError:
+            return False
+
+        return parsed_date < date.today()

@@ -57,6 +57,7 @@ def test_build_clarification_reply(intent, missing_fields, expected_substring):
     "code,expected_substring",
     [
         ("missing_order_id", "order ID"),
+        ("date_in_past", "future date"),
         ("fallback", "specialist"),
         ("unknown_code", "went wrong"),
         ("", "went wrong"),

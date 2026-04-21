@@ -39,6 +39,10 @@ ERROR_REPLIES: dict[str, str] = {
         "I'd love to help, but I couldn't find an order ID in your message. "
         "Could you share it so I can look into this for you?"
     ),
+    "date_in_past": (
+        "I can help with that — the requested date looks like it's in the past. "
+        "Could you share a future date in YYYY-MM-DD format?"
+    ),
     "fallback": (
         "I'm sorry I wasn't able to sort this out automatically. "
         "A support specialist will follow up with you shortly."
