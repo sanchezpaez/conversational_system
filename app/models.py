@@ -20,8 +20,15 @@ class EntityExtraction(BaseModel):
     date: str | None = None
 
 
+class SessionMetrics(BaseModel):
+    turns_to_resolution: int | None = None
+    clarification_rate: float
+    success_rate: float
+
+
 class ChatResponse(BaseModel):
     intent: IntentName
     entities: EntityExtraction
     backend_result: dict
     reply: str
+    metrics: SessionMetrics | None = None

@@ -30,6 +30,10 @@ Python prototype of a customer support AI agent using FastAPI and the OpenAI API
 - Multi-turn memory is supported via optional `session_id` in `/chat` requests.
 - When clarification is required, the agent stores missing context per `session_id`.
 - Next user turns in the same session can provide only missing fields (for example, just date).
+- Each response includes per-session metrics in `metrics`:
+   - `turns_to_resolution`
+   - `clarification_rate`
+   - `success_rate`
 
 Example multi-turn flow:
 - Turn 1: `{"message": "I need to change my booking", "session_id": "s1"}`
@@ -204,7 +208,7 @@ Production logic remains in `app/llm.py`.
 
 ### Phase 3 — Evaluation and observability
 - [x] Automated evaluation script with labelled test cases
-- [ ] Per-session metrics: turns to resolution, clarification rate, success rate
+- [x] Per-session metrics: turns to resolution, clarification rate, success rate
 - [ ] Structured JSON logging for full traceability
 
 ### Phase 4 — Multilingual support

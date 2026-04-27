@@ -6,7 +6,7 @@ from app.conversation_memory import ConversationState, InMemoryConversationMemor
 from app.dialogue_policy import build_clarification_reply, build_error_reply, get_missing_fields
 from app.entity_parser import references_previous_date, references_previous_order
 from app.llm import LLMClient
-from app.models import ChatResponse, EntityExtraction
+from app.models import ChatResponse, EntityExtraction, SessionMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +44,9 @@ class SupportAgent:
                 prior_state.last_intent,
                 intent_name,
             )
-            prior_state = ConversationState()
+            prior_state = self._reset_context_preserving_metrics(prior_state)
             if session_id:
-                self.memory.upsert(session_id, ConversationState())
+                self.memory.upsert(session_id, prior_state)
 
         if prior_state.pending_clarification and prior_state.last_intent is not None:
             fresh_entities = self.llm_client.extract_entities(message)
@@ -68,16 +68,17 @@ class SupportAgent:
                 "missing_fields": missing_fields,
             }
             reply = build_clarification_reply(intent_name, missing_fields)
+            updated_state = self._build_updated_state(
+                prior_state=prior_state,
+                intent_name=intent_name,
+                entities=entities,
+                pending_clarification=missing_fields,
+                backend_result=backend_result,
+            )
+            metrics = self._metrics_from_state(updated_state)
 
             if session_id:
-                self.memory.upsert(
-                    session_id,
-                    ConversationState(
-                        last_intent=intent_name,
-                        last_entities=entities,
-                        pending_clarification=missing_fields,
-                    ),
-                )
+                self.memory.upsert(session_id, updated_state)
 
             logger.info("final_reply=%s", reply)
             return ChatResponse(
@@ -85,6 +86,7 @@ class SupportAgent:
                 entities=entities,
                 backend_result=backend_result,
                 reply=reply,
+                metrics=metrics,
             )
 
         if intent_name == "order_status":
@@ -100,15 +102,17 @@ class SupportAgent:
         else:
             backend_result = backend.fallback_support()
 
+        updated_state = self._build_updated_state(
+            prior_state=prior_state,
+            intent_name=intent_name,
+            entities=entities,
+            pending_clarification=[],
+            backend_result=backend_result,
+        )
+        metrics = self._metrics_from_state(updated_state)
+
         if session_id:
-            self.memory.upsert(
-                session_id,
-                ConversationState(
-                    last_intent=intent_name,
-                    last_entities=entities,
-                    pending_clarification=[],
-                ),
-            )
+            self.memory.upsert(session_id, updated_state)
 
         logger.info("backend_result=%s", backend_result)
 
@@ -120,6 +124,7 @@ class SupportAgent:
             entities=entities,
             backend_result=backend_result,
             reply=reply,
+            metrics=metrics,
         )
 
     def _merge_entities(self, previous: EntityExtraction, current: EntityExtraction) -> EntityExtraction:
@@ -162,3 +167,61 @@ class SupportAgent:
             resolved_date = previous_entities.date
 
         return EntityExtraction(order_id=resolved_order_id, date=resolved_date)
+
+    def _build_updated_state(
+        self,
+        prior_state: ConversationState,
+        intent_name: str,
+        entities: EntityExtraction,
+        pending_clarification: list[str],
+        backend_result: dict,
+    ) -> ConversationState:
+        total_turns = prior_state.total_turns + 1
+        clarification_turns = prior_state.clarification_turns
+        successful_turns = prior_state.successful_turns
+        first_success_turn = prior_state.first_success_turn
+
+        if backend_result.get("code") == "need_clarification":
+            clarification_turns += 1
+
+        if self._is_resolution_success(backend_result):
+            successful_turns += 1
+            if first_success_turn is None:
+                first_success_turn = total_turns
+
+        return ConversationState(
+            last_intent=intent_name,
+            last_entities=entities,
+            pending_clarification=pending_clarification,
+            total_turns=total_turns,
+            clarification_turns=clarification_turns,
+            successful_turns=successful_turns,
+            first_success_turn=first_success_turn,
+        )
+
+    def _metrics_from_state(self, state: ConversationState) -> SessionMetrics:
+        if state.total_turns == 0:
+            return SessionMetrics(
+                turns_to_resolution=state.first_success_turn,
+                clarification_rate=0.0,
+                success_rate=0.0,
+            )
+
+        return SessionMetrics(
+            turns_to_resolution=state.first_success_turn,
+            clarification_rate=state.clarification_turns / state.total_turns,
+            success_rate=state.successful_turns / state.total_turns,
+        )
+
+    def _is_resolution_success(self, backend_result: dict) -> bool:
+        if not backend_result.get("ok", False):
+            return False
+        return backend_result.get("code") != "fallback"
+
+    def _reset_context_preserving_metrics(self, state: ConversationState) -> ConversationState:
+        return ConversationState(
+            total_turns=state.total_turns,
+            clarification_turns=state.clarification_turns,
+            successful_turns=state.successful_turns,
+            first_success_turn=state.first_success_turn,
+        )

@@ -8,6 +8,10 @@ class ConversationState:
     last_intent: IntentName | None = None
     last_entities: EntityExtraction = field(default_factory=EntityExtraction)
     pending_clarification: list[str] = field(default_factory=list)
+    total_turns: int = 0
+    clarification_turns: int = 0
+    successful_turns: int = 0
+    first_success_turn: int | None = None
 
 
 class InMemoryConversationMemory:
