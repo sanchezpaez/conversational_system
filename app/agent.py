@@ -13,15 +13,34 @@ from app.models import ChatResponse, EntityExtraction, LanguageCode, SessionMetr
 logger = logging.getLogger(__name__)
 
 RESPONSE_TEMPLATES = {
-    "order_status": (
-        "Good news — I found order {order_id}. Current status: {status}."
-    ),
-    "change_booking": (
-        "All done! I've updated order {order_id} to the new date: {new_date}."
-    ),
-    "fallback": (
-        "I'm sorry I wasn't able to handle this automatically. {message}"
-    ),
+    "en": {
+        "order_status": "Good news — I found order {order_id}. Current status: {status}.",
+        "change_booking": "All done! I've updated order {order_id} to the new date: {new_date}.",
+        "fallback": "I'm sorry I wasn't able to handle this automatically. {message}",
+    },
+    "es": {
+        "order_status": "Buenas noticias: encontré el pedido {order_id}. Estado actual: {status}.",
+        "change_booking": "Listo. He actualizado el pedido {order_id} a la nueva fecha: {new_date}.",
+        "fallback": "Lo siento, no he podido gestionar esto automáticamente. {message}",
+    },
+}
+
+STATUS_LABELS = {
+    "en": {
+        "processing": "processing",
+        "shipped": "shipped",
+        "delivered": "delivered",
+    },
+    "es": {
+        "processing": "en preparación",
+        "shipped": "enviado",
+        "delivered": "entregado",
+    },
+}
+
+FALLBACK_MESSAGES = {
+    "en": "A support specialist will review your request.",
+    "es": "Un especialista de soporte revisará tu solicitud.",
 }
 
 
@@ -92,7 +111,7 @@ class SupportAgent:
                 missing_fields=missing_fields,
                 backend_result=backend_result,
             )
-            reply = build_clarification_reply(intent_name, missing_fields)
+            reply = build_clarification_reply(intent_name, missing_fields, detected_language)
             updated_state = self._build_updated_state(
                 prior_state=prior_state,
                 intent_name=intent_name,
@@ -159,7 +178,7 @@ class SupportAgent:
             backend_result=backend_result,
         )
 
-        reply = self._render_reply(intent_name, backend_result)
+        reply = self._render_reply(intent_name, backend_result, detected_language)
         self._log_event(
             event="reply_generated",
             session_id=session_id,
@@ -184,12 +203,21 @@ class SupportAgent:
             date=current.date or previous.date,
         )
 
-    def _render_reply(self, intent: str, backend_result: dict) -> str:
+    def _render_reply(self, intent: str, backend_result: dict, language: LanguageCode) -> str:
         if not backend_result.get("ok", False):
-            return build_error_reply(backend_result.get("code", ""))
+            return build_error_reply(backend_result.get("code", ""), language)
 
-        template = RESPONSE_TEMPLATES[intent]
-        return template.format(**backend_result)
+        template = RESPONSE_TEMPLATES[language][intent]
+        payload = dict(backend_result)
+
+        if intent == "order_status":
+            status = backend_result.get("status", "")
+            payload["status"] = STATUS_LABELS[language].get(status, status)
+
+        if intent == "fallback":
+            payload["message"] = FALLBACK_MESSAGES[language]
+
+        return template.format(**payload)
 
     def _is_past_iso_date(self, raw_date: str | None) -> bool:
         if not raw_date:

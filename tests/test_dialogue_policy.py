@@ -39,30 +39,38 @@ def test_get_missing_fields_contract(intent, entities, expected_missing):
 
 
 @pytest.mark.parametrize(
-    "intent,missing_fields,expected_substring",
+    "intent,missing_fields,language,expected_substring",
     [
-        ("order_status", ["order_id"], "order ID"),
-        ("change_booking", ["order_id"], "order ID"),
-        ("change_booking", ["date"], "YYYY-MM-DD"),
-        ("change_booking", ["order_id", "date"], "order ID and the new date"),
-        ("fallback", [], "enough information"),
+        ("order_status", ["order_id"], "en", "order ID"),
+        ("change_booking", ["order_id"], "en", "order ID"),
+        ("change_booking", ["date"], "en", "YYYY-MM-DD"),
+        ("change_booking", ["order_id", "date"], "en", "order ID and the new date"),
+        ("fallback", [], "en", "enough information"),
+        ("order_status", ["order_id"], "es", "ID de tu pedido"),
+        ("change_booking", ["date"], "es", "YYYY-MM-DD"),
+        ("change_booking", ["order_id", "date"], "es", "ID de tu pedido y la nueva fecha"),
+        ("fallback", [], "es", "suficiente información"),
     ],
 )
-def test_build_clarification_reply(intent, missing_fields, expected_substring):
-    reply = build_clarification_reply(intent, missing_fields)
+def test_build_clarification_reply(intent, missing_fields, language, expected_substring):
+    reply = build_clarification_reply(intent, missing_fields, language)
     assert expected_substring in reply
 
 
 @pytest.mark.parametrize(
-    "code,expected_substring",
+    "code,language,expected_substring",
     [
-        ("missing_order_id", "order ID"),
-        ("date_in_past", "future date"),
-        ("fallback", "specialist"),
-        ("unknown_code", "went wrong"),
-        ("", "went wrong"),
+        ("missing_order_id", "en", "order ID"),
+        ("date_in_past", "en", "future date"),
+        ("fallback", "en", "specialist"),
+        ("unknown_code", "en", "went wrong"),
+        ("", "en", "went wrong"),
+        ("missing_order_id", "es", "ID de pedido"),
+        ("date_in_past", "es", "fecha futura"),
+        ("fallback", "es", "especialista"),
+        ("unknown_code", "es", "salió mal"),
     ],
 )
-def test_build_error_reply(code, expected_substring):
-    reply = build_error_reply(code)
+def test_build_error_reply(code, language, expected_substring):
+    reply = build_error_reply(code, language)
     assert expected_substring in reply
