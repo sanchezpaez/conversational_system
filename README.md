@@ -34,6 +34,7 @@ Python prototype of a customer support AI agent using FastAPI and the OpenAI API
    - `turns_to_resolution`
    - `clarification_rate`
    - `success_rate`
+- Language is detected automatically per message (`en`/`es`) and stored per session.
 
 Example multi-turn flow:
 - Turn 1: `{"message": "I need to change my booking", "session_id": "s1"}`
@@ -217,7 +218,7 @@ Each event includes stable traceability fields: `timestamp`, `event`, `session_i
 - [x] Structured JSON logging for full traceability
 
 ### Phase 4 — Multilingual support
-- [ ] Automatic language detection from user message
+- [x] Automatic language detection from user message
 - [ ] Prompts and responses in detected language (English and Spanish as v1)
 
 ### Phase 5 — Integrations

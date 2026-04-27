@@ -30,6 +30,7 @@ def test_chat_with_valid_message_returns_chat_response(client, mock_llm_client):
         assert "entities" in data
         assert "backend_result" in data
         assert "reply" in data
+        assert "language" in data
 
 
 def test_chat_accepts_session_id(client, mock_llm_client):

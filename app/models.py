@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 
 IntentName = Literal["order_status", "change_booking", "fallback"]
+LanguageCode = Literal["en", "es"]
 
 
 class ChatRequest(BaseModel):
@@ -32,3 +33,4 @@ class ChatResponse(BaseModel):
     backend_result: dict
     reply: str
     metrics: SessionMetrics | None = None
+    language: LanguageCode | None = None

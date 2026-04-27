@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from app.models import EntityExtraction, IntentName
+from app.models import EntityExtraction, IntentName, LanguageCode
 
 
 @dataclass
@@ -8,6 +8,7 @@ class ConversationState:
     last_intent: IntentName | None = None
     last_entities: EntityExtraction = field(default_factory=EntityExtraction)
     pending_clarification: list[str] = field(default_factory=list)
+    language: LanguageCode | None = None
     total_turns: int = 0
     clarification_turns: int = 0
     successful_turns: int = 0

@@ -6,8 +6,9 @@ from app import backend
 from app.conversation_memory import ConversationState, InMemoryConversationMemory
 from app.dialogue_policy import build_clarification_reply, build_error_reply, get_missing_fields
 from app.entity_parser import references_previous_date, references_previous_order
+from app.language import detect_language
 from app.llm import LLMClient
-from app.models import ChatResponse, EntityExtraction, SessionMetrics
+from app.models import ChatResponse, EntityExtraction, LanguageCode, SessionMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,8 @@ class SupportAgent:
 
     def process(self, message: str, session_id: str | None = None) -> ChatResponse:
         prior_state = self.memory.get(session_id) if session_id else ConversationState()
+        default_language: LanguageCode = prior_state.language or "en"
+        detected_language = detect_language(message, default_language=default_language)
 
         intent_decision = self.llm_client.classify_intent(message)
         intent_name = intent_decision.intent
@@ -38,6 +41,7 @@ class SupportAgent:
             event="intent_detected",
             session_id=session_id,
             intent=intent_name,
+            language=detected_language,
         )
 
         if (
@@ -49,9 +53,11 @@ class SupportAgent:
                 event="intent_changed",
                 session_id=session_id,
                 intent=intent_name,
+                language=detected_language,
                 extra={"previous_intent": prior_state.last_intent},
             )
             prior_state = self._reset_context_preserving_metrics(prior_state)
+            prior_state.language = detected_language
             if session_id:
                 self.memory.upsert(session_id, prior_state)
 
@@ -66,6 +72,7 @@ class SupportAgent:
             event="entities_extracted",
             session_id=session_id,
             intent=intent_name,
+            language=detected_language,
             entities=entities,
         )
 
@@ -80,6 +87,7 @@ class SupportAgent:
                 event="clarification_requested",
                 session_id=session_id,
                 intent=intent_name,
+                language=detected_language,
                 entities=entities,
                 missing_fields=missing_fields,
                 backend_result=backend_result,
@@ -91,6 +99,7 @@ class SupportAgent:
                 entities=entities,
                 pending_clarification=missing_fields,
                 backend_result=backend_result,
+                language=detected_language,
             )
             metrics = self._metrics_from_state(updated_state)
 
@@ -101,6 +110,7 @@ class SupportAgent:
                 event="reply_generated",
                 session_id=session_id,
                 intent=intent_name,
+                language=detected_language,
                 entities=entities,
                 missing_fields=missing_fields,
                 backend_result=backend_result,
@@ -111,6 +121,7 @@ class SupportAgent:
                 backend_result=backend_result,
                 reply=reply,
                 metrics=metrics,
+                language=detected_language,
             )
 
         if intent_name == "order_status":
@@ -132,6 +143,7 @@ class SupportAgent:
             entities=entities,
             pending_clarification=[],
             backend_result=backend_result,
+            language=detected_language,
         )
         metrics = self._metrics_from_state(updated_state)
 
@@ -142,6 +154,7 @@ class SupportAgent:
             event="backend_result",
             session_id=session_id,
             intent=intent_name,
+            language=detected_language,
             entities=entities,
             backend_result=backend_result,
         )
@@ -151,6 +164,7 @@ class SupportAgent:
             event="reply_generated",
             session_id=session_id,
             intent=intent_name,
+            language=detected_language,
             entities=entities,
             backend_result=backend_result,
         )
@@ -161,6 +175,7 @@ class SupportAgent:
             backend_result=backend_result,
             reply=reply,
             metrics=metrics,
+            language=detected_language,
         )
 
     def _merge_entities(self, previous: EntityExtraction, current: EntityExtraction) -> EntityExtraction:
@@ -211,6 +226,7 @@ class SupportAgent:
         entities: EntityExtraction,
         pending_clarification: list[str],
         backend_result: dict,
+        language: LanguageCode,
     ) -> ConversationState:
         total_turns = prior_state.total_turns + 1
         clarification_turns = prior_state.clarification_turns
@@ -229,6 +245,7 @@ class SupportAgent:
             last_intent=intent_name,
             last_entities=entities,
             pending_clarification=pending_clarification,
+            language=language,
             total_turns=total_turns,
             clarification_turns=clarification_turns,
             successful_turns=successful_turns,
@@ -256,6 +273,7 @@ class SupportAgent:
 
     def _reset_context_preserving_metrics(self, state: ConversationState) -> ConversationState:
         return ConversationState(
+            language=state.language,
             total_turns=state.total_turns,
             clarification_turns=state.clarification_turns,
             successful_turns=state.successful_turns,
@@ -267,6 +285,7 @@ class SupportAgent:
         event: str,
         session_id: str | None,
         intent: str,
+        language: LanguageCode,
         entities: EntityExtraction | None = None,
         missing_fields: list[str] | None = None,
         backend_result: dict | None = None,
@@ -277,6 +296,7 @@ class SupportAgent:
             "event": event,
             "session_id": session_id,
             "intent": intent,
+            "language": language,
             "entities": entities.model_dump() if entities else None,
             "missing_fields": missing_fields or [],
             "backend_code": backend_result.get("code") if backend_result else None,
