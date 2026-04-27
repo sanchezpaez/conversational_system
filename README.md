@@ -173,6 +173,11 @@ Note: deterministic mode uses an internal mock LLM in `scripts/evaluate.py`
 (`_mock_classify_intent` and `_mock_extract_entities`) only for evaluation.
 Production logic remains in `app/llm.py`.
 
+Structured JSON logs are emitted for key events in each turn (`intent_detected`,
+`entities_extracted`, `clarification_requested`, `backend_result`, `reply_generated`).
+Each event includes stable traceability fields: `timestamp`, `event`, `session_id`,
+`intent`, `entities`, `missing_fields`, `backend_code`, and `ok`.
+
 ## Project evolution (summary)
 
 - v0: FastAPI foundation with `/chat` endpoint
@@ -209,7 +214,7 @@ Production logic remains in `app/llm.py`.
 ### Phase 3 — Evaluation and observability
 - [x] Automated evaluation script with labelled test cases
 - [x] Per-session metrics: turns to resolution, clarification rate, success rate
-- [ ] Structured JSON logging for full traceability
+- [x] Structured JSON logging for full traceability
 
 ### Phase 4 — Multilingual support
 - [ ] Automatic language detection from user message

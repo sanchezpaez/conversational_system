@@ -1,5 +1,6 @@
+import json
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 
 from app import backend
 from app.conversation_memory import ConversationState, InMemoryConversationMemory
@@ -33,16 +34,22 @@ class SupportAgent:
 
         intent_decision = self.llm_client.classify_intent(message)
         intent_name = intent_decision.intent
+        self._log_event(
+            event="intent_detected",
+            session_id=session_id,
+            intent=intent_name,
+        )
 
         if (
             prior_state.pending_clarification
             and prior_state.last_intent is not None
             and intent_name != prior_state.last_intent
         ):
-            logger.info(
-                "intent_changed from=%s to=%s — resetting state",
-                prior_state.last_intent,
-                intent_name,
+            self._log_event(
+                event="intent_changed",
+                session_id=session_id,
+                intent=intent_name,
+                extra={"previous_intent": prior_state.last_intent},
             )
             prior_state = self._reset_context_preserving_metrics(prior_state)
             if session_id:
@@ -55,18 +62,28 @@ class SupportAgent:
             entities = self.llm_client.extract_entities(message)
 
         entities = self._resolve_anaphora_entities(message, entities, prior_state.last_entities)
-
-        logger.info("intent=%s", intent_name)
-        logger.info("entities=%s", entities.model_dump())
+        self._log_event(
+            event="entities_extracted",
+            session_id=session_id,
+            intent=intent_name,
+            entities=entities,
+        )
 
         missing_fields = get_missing_fields(intent_name, entities)
         if missing_fields:
-            logger.info("missing_fields=%s", missing_fields)
             backend_result = {
                 "ok": False,
                 "code": "need_clarification",
                 "missing_fields": missing_fields,
             }
+            self._log_event(
+                event="clarification_requested",
+                session_id=session_id,
+                intent=intent_name,
+                entities=entities,
+                missing_fields=missing_fields,
+                backend_result=backend_result,
+            )
             reply = build_clarification_reply(intent_name, missing_fields)
             updated_state = self._build_updated_state(
                 prior_state=prior_state,
@@ -80,7 +97,14 @@ class SupportAgent:
             if session_id:
                 self.memory.upsert(session_id, updated_state)
 
-            logger.info("final_reply=%s", reply)
+            self._log_event(
+                event="reply_generated",
+                session_id=session_id,
+                intent=intent_name,
+                entities=entities,
+                missing_fields=missing_fields,
+                backend_result=backend_result,
+            )
             return ChatResponse(
                 intent=intent_name,
                 entities=entities,
@@ -114,10 +138,22 @@ class SupportAgent:
         if session_id:
             self.memory.upsert(session_id, updated_state)
 
-        logger.info("backend_result=%s", backend_result)
+        self._log_event(
+            event="backend_result",
+            session_id=session_id,
+            intent=intent_name,
+            entities=entities,
+            backend_result=backend_result,
+        )
 
         reply = self._render_reply(intent_name, backend_result)
-        logger.info("final_reply=%s", reply)
+        self._log_event(
+            event="reply_generated",
+            session_id=session_id,
+            intent=intent_name,
+            entities=entities,
+            backend_result=backend_result,
+        )
 
         return ChatResponse(
             intent=intent_name,
@@ -225,3 +261,28 @@ class SupportAgent:
             successful_turns=state.successful_turns,
             first_success_turn=state.first_success_turn,
         )
+
+    def _log_event(
+        self,
+        event: str,
+        session_id: str | None,
+        intent: str,
+        entities: EntityExtraction | None = None,
+        missing_fields: list[str] | None = None,
+        backend_result: dict | None = None,
+        extra: dict | None = None,
+    ) -> None:
+        payload: dict = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "event": event,
+            "session_id": session_id,
+            "intent": intent,
+            "entities": entities.model_dump() if entities else None,
+            "missing_fields": missing_fields or [],
+            "backend_code": backend_result.get("code") if backend_result else None,
+            "ok": backend_result.get("ok") if backend_result else None,
+        }
+        if extra:
+            payload.update(extra)
+
+        logger.info(json.dumps(payload, ensure_ascii=False))

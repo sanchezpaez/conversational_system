@@ -8,7 +8,7 @@ from app.exceptions import ConfigurationError
 from app.llm import LLMClient
 from app.models import ChatRequest, ChatResponse
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 load_environment()
 
 app = FastAPI(title="Customer Support AI Agent Prototype")
