@@ -153,11 +153,21 @@ Run tests with coverage:
 uv run pytest --cov=app --cov-report=term-missing
 ```
 
+Run deterministic evaluation (default, no API key required):
+
+```bash
+uv run python scripts/evaluate.py
+```
+
 Run evaluation script with real OpenAI API:
 
 ```bash
-uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
+uv run python scripts/evaluate.py --real  # requires OPENAI_API_KEY in .env
 ```
+
+Note: deterministic mode uses an internal mock LLM in `scripts/evaluate.py`
+(`_mock_classify_intent` and `_mock_extract_entities`) only for evaluation.
+Production logic remains in `app/llm.py`.
 
 ## Project evolution (summary)
 
@@ -193,7 +203,7 @@ uv run python scripts/evaluate.py  # requires OPENAI_API_KEY in .env
 - [x] Basic anaphora resolution ("that order", "the same date")
 
 ### Phase 3 — Evaluation and observability
-- [ ] Automated evaluation script with labelled test cases
+- [x] Automated evaluation script with labelled test cases
 - [ ] Per-session metrics: turns to resolution, clarification rate, success rate
 - [ ] Structured JSON logging for full traceability
 
