@@ -1,9 +1,9 @@
 import logging
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 
 from app.agent import SupportAgent
-from app.config import get_memory_backend, get_sqlite_db_path, load_environment
+from app.config import get_chat_api_key, get_memory_backend, get_sqlite_db_path, load_environment
 from app.conversation_memory import InMemoryConversationMemory
 from app.exceptions import ConfigurationError
 from app.llm import LLMClient
@@ -32,10 +32,19 @@ def build_agent() -> SupportAgent:
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest) -> ChatResponse:
+def chat(
+    request: ChatRequest,
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+) -> ChatResponse:
     try:
+        expected_api_key = get_chat_api_key()
+        if x_api_key != expected_api_key:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
         agent = build_agent()
         return agent.process(request.message, request.session_id)
+    except HTTPException as error:
+        raise error
     except ConfigurationError as error:
         raise HTTPException(
             status_code=503,

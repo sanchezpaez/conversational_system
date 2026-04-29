@@ -90,6 +90,7 @@ uv run python scripts/demo.py --batch
    ```bash
    curl -X POST http://127.0.0.1:8000/chat \
      -H "Content-Type: application/json" \
+       -H "X-API-Key: your_chat_key" \
      -d '{"message": "Where is my order AB-123?"}'
    ```
 
@@ -107,7 +108,7 @@ uv run python scripts/demo.py --batch
 
    ```bash
    cp .env.example .env
-   # Edit .env and add: OPENAI_API_KEY=your_key
+   # Edit .env and add: OPENAI_API_KEY=your_key and CHAT_API_KEY=your_chat_key
    ```
 
 3. (Optional) Enable persisted session memory with SQLite:
@@ -123,9 +124,21 @@ uv run python scripts/demo.py --batch
 - The key is read from environment variable `OPENAI_API_KEY`.
 - If `OPENAI_API_KEY` is missing, the API returns `503 Service Unavailable`.
 - Demo mode does not require an API key.
+- Access to `/chat` requires header `X-API-Key` matching `CHAT_API_KEY`.
 - Session memory backend defaults to in-memory (`MEMORY_BACKEND=memory`).
 - Use `MEMORY_BACKEND=sqlite` to persist session state across restarts.
 - SQLite file location is configured with `SQLITE_DB_PATH`.
+
+## Why API-key auth now (and what to improve later)
+
+- For this phase, a single service API key keeps the implementation small and secure enough for internal use.
+- It protects `/chat` from anonymous access while keeping deployment and testing simple.
+- The OpenAI key stays server-side; end users never provide `OPENAI_API_KEY`.
+
+Future improvements:
+- Replace shared key auth with user-level auth (JWT/OAuth2).
+- Add scopes/roles and key rotation.
+- Add per-user audit trails and rate limiting.
 
 ## Project structure
 
@@ -236,7 +249,7 @@ Each event includes stable traceability fields: `timestamp`, `event`, `session_i
 
 ### Phase 5 — Integrations
 - [x] Session persistence in a database (SQLite for dev, PostgreSQL for prod)
-- [ ] Basic authentication for `/chat` endpoint
+- [x] Basic authentication for `/chat` endpoint
 - [ ] Replace mock backend with real API calls
 
 ### Phase 6 — UI and experience

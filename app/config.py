@@ -27,3 +27,11 @@ def get_memory_backend() -> str:
 def get_sqlite_db_path() -> str:
     load_environment()
     return os.getenv("SQLITE_DB_PATH", "data/conversation_state.db")
+
+
+def get_chat_api_key() -> str:
+    load_environment()
+    api_key = os.getenv("CHAT_API_KEY")
+    if not api_key:
+        raise ConfigurationError("CHAT_API_KEY is not set. Add it to .env.")
+    return api_key
