@@ -3,7 +3,7 @@ import logging
 from datetime import date, datetime, timezone
 
 from app import backend
-from app.conversation_memory import ConversationState, InMemoryConversationMemory
+from app.conversation_memory import ConversationMemoryStore, ConversationState, InMemoryConversationMemory
 from app.dialogue_policy import build_clarification_reply, build_error_reply, get_missing_fields
 from app.entity_parser import references_previous_date, references_previous_order
 from app.language import detect_language
@@ -45,7 +45,7 @@ FALLBACK_MESSAGES = {
 
 
 class SupportAgent:
-    def __init__(self, llm_client: LLMClient, memory: InMemoryConversationMemory | None = None) -> None:
+    def __init__(self, llm_client: LLMClient, memory: ConversationMemoryStore | None = None) -> None:
         self.llm_client = llm_client
         self.memory = memory or InMemoryConversationMemory()
 

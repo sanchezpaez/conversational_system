@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from app.models import EntityExtraction, IntentName, LanguageCode
 
@@ -13,6 +14,19 @@ class ConversationState:
     clarification_turns: int = 0
     successful_turns: int = 0
     first_success_turn: int | None = None
+
+
+class ConversationMemoryStore(Protocol):
+    # Contract-only API shared by memory backends (in-memory, SQLite, future PostgreSQL).
+    # Ellipsis marks declarations; concrete implementations provide the behavior.
+    def get(self, session_id: str) -> ConversationState:
+        ...
+
+    def upsert(self, session_id: str, state: ConversationState) -> None:
+        ...
+
+    def clear_pending(self, session_id: str) -> None:
+        ...
 
 
 class InMemoryConversationMemory:

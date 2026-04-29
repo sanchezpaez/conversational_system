@@ -110,12 +110,22 @@ uv run python scripts/demo.py --batch
    # Edit .env and add: OPENAI_API_KEY=your_key
    ```
 
+3. (Optional) Enable persisted session memory with SQLite:
+
+   ```dotenv
+   MEMORY_BACKEND=sqlite
+   SQLITE_DB_PATH=data/conversation_state.db
+   ```
+
 ## How the API key is loaded
 
 - The project loads `.env` from the repository root through the centralized module `app/config.py`.
 - The key is read from environment variable `OPENAI_API_KEY`.
 - If `OPENAI_API_KEY` is missing, the API returns `503 Service Unavailable`.
 - Demo mode does not require an API key.
+- Session memory backend defaults to in-memory (`MEMORY_BACKEND=memory`).
+- Use `MEMORY_BACKEND=sqlite` to persist session state across restarts.
+- SQLite file location is configured with `SQLITE_DB_PATH`.
 
 ## Project structure
 
@@ -125,16 +135,18 @@ app/
   agent.py          # Main agent pipeline
   backend.py        # Mock backend handlers
   config.py         # .env loading and config
-   conversation_memory.py  # In-memory per-session state
+   conversation_memory.py  # Memory contract + in-memory implementation
   exceptions.py     # Custom exceptions
   llm.py            # OpenAI client and prompts
   models.py         # Pydantic models
+   sqlite_memory.py  # SQLite-based session memory
 scripts/
   evaluate.py       # Sample evaluation script
 tests/
   conftest.py       # Pytest fixtures
   test_agent.py     # Agent pipeline tests
   test_api.py       # FastAPI endpoint tests
+   test_sqlite_memory.py  # SQLite memory tests
 main.py            # FastAPI app entry point
 pyproject.toml     # Dependencies
 ```
@@ -223,7 +235,7 @@ Each event includes stable traceability fields: `timestamp`, `event`, `session_i
 - [x] Prompts and responses in detected language (English and Spanish as v1)
 
 ### Phase 5 — Integrations
-- [ ] Session persistence in a database (SQLite for dev, PostgreSQL for prod)
+- [x] Session persistence in a database (SQLite for dev, PostgreSQL for prod)
 - [ ] Basic authentication for `/chat` endpoint
 - [ ] Replace mock backend with real API calls
 

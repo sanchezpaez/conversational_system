@@ -17,3 +17,13 @@ def get_openai_api_key() -> str:
     if not api_key:
         raise ConfigurationError("OPENAI_API_KEY is not set. Add it to .env.")
     return api_key
+
+
+def get_memory_backend() -> str:
+    load_environment()
+    return os.getenv("MEMORY_BACKEND", "memory").lower()
+
+
+def get_sqlite_db_path() -> str:
+    load_environment()
+    return os.getenv("SQLITE_DB_PATH", "data/conversation_state.db")
