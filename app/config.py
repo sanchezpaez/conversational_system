@@ -35,3 +35,24 @@ def get_chat_api_key() -> str:
     if not api_key:
         raise ConfigurationError("CHAT_API_KEY is not set. Add it to .env.")
     return api_key
+
+
+def get_backend_mode() -> str:
+    load_environment()
+    return os.getenv("BACKEND_MODE", "mock").lower()
+
+
+def get_real_backend_base_url() -> str:
+    load_environment()
+    base_url = os.getenv("REAL_BACKEND_BASE_URL")
+    if not base_url:
+        raise ConfigurationError("REAL_BACKEND_BASE_URL is not set. Add it to .env.")
+    return base_url
+
+
+def get_real_backend_api_key() -> str:
+    load_environment()
+    api_key = os.getenv("REAL_BACKEND_API_KEY")
+    if not api_key:
+        raise ConfigurationError("REAL_BACKEND_API_KEY is not set. Add it to .env.")
+    return api_key

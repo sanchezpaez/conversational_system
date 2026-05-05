@@ -3,6 +3,7 @@ import logging
 from datetime import date, datetime, timezone
 
 from app import backend
+from app.backend import BackendClient
 from app.conversation_memory import ConversationMemoryStore, ConversationState, InMemoryConversationMemory
 from app.dialogue_policy import build_clarification_reply, build_error_reply, get_missing_fields
 from app.entity_parser import references_previous_date, references_previous_order
@@ -45,9 +46,15 @@ FALLBACK_MESSAGES = {
 
 
 class SupportAgent:
-    def __init__(self, llm_client: LLMClient, memory: ConversationMemoryStore | None = None) -> None:
+    def __init__(
+        self,
+        llm_client: LLMClient,
+        memory: ConversationMemoryStore | None = None,
+        backend_client: BackendClient | None = None,
+    ) -> None:
         self.llm_client = llm_client
         self.memory = memory or InMemoryConversationMemory()
+        self.backend = backend_client or backend
 
     def process(self, message: str, session_id: str | None = None) -> ChatResponse:
         prior_state = self.memory.get(session_id) if session_id else ConversationState()
@@ -144,7 +151,7 @@ class SupportAgent:
             )
 
         if intent_name == "order_status":
-            backend_result = backend.get_order_status(entities.order_id)
+            backend_result = self.backend.get_order_status(entities.order_id)
         elif intent_name == "change_booking":
             if self._is_past_iso_date(entities.date):
                 backend_result = {
@@ -152,9 +159,9 @@ class SupportAgent:
                     "code": "date_in_past",
                 }
             else:
-                backend_result = backend.change_booking(entities.order_id, entities.date)
+                backend_result = self.backend.change_booking(entities.order_id, entities.date)
         else:
-            backend_result = backend.fallback_support()
+            backend_result = self.backend.fallback_support()
 
         updated_state = self._build_updated_state(
             prior_state=prior_state,

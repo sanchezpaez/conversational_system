@@ -108,7 +108,10 @@ uv run python scripts/demo.py --batch
 
    ```bash
    cp .env.example .env
-   # Edit .env and add: OPENAI_API_KEY=your_key and CHAT_API_KEY=your_chat_key
+   # Edit .env and add:
+   # OPENAI_API_KEY=your_key
+   # CHAT_API_KEY=your_chat_key
+   # BACKEND_MODE=mock
    ```
 
 3. (Optional) Enable persisted session memory with SQLite:
@@ -116,6 +119,14 @@ uv run python scripts/demo.py --batch
    ```dotenv
    MEMORY_BACKEND=sqlite
    SQLITE_DB_PATH=data/conversation_state.db
+   ```
+
+4. (Optional) Enable real backend integration:
+
+   ```dotenv
+   BACKEND_MODE=real
+   REAL_BACKEND_BASE_URL=https://backend.example
+   REAL_BACKEND_API_KEY=your_real_backend_api_key_here
    ```
 
 ## How the API key is loaded
@@ -128,6 +139,9 @@ uv run python scripts/demo.py --batch
 - Session memory backend defaults to in-memory (`MEMORY_BACKEND=memory`).
 - Use `MEMORY_BACKEND=sqlite` to persist session state across restarts.
 - SQLite file location is configured with `SQLITE_DB_PATH`.
+- Backend integration mode defaults to mock (`BACKEND_MODE=mock`).
+- Use `BACKEND_MODE=real` to call an external backend API.
+- Real backend settings use `REAL_BACKEND_BASE_URL` and `REAL_BACKEND_API_KEY`.
 
 ## Why API-key auth now (and what to improve later)
 
@@ -146,7 +160,8 @@ Future improvements:
 app/
   __init__.py
   agent.py          # Main agent pipeline
-  backend.py        # Mock backend handlers
+   backend.py        # Backend contract + mock backend handlers
+   backend_real.py   # Real backend HTTP client
   config.py         # .env loading and config
    conversation_memory.py  # Memory contract + in-memory implementation
   exceptions.py     # Custom exceptions
@@ -159,6 +174,8 @@ tests/
   conftest.py       # Pytest fixtures
   test_agent.py     # Agent pipeline tests
   test_api.py       # FastAPI endpoint tests
+   test_backend_real.py  # Real backend client tests
+   test_main_backend_mode.py  # Backend mode selection tests
    test_sqlite_memory.py  # SQLite memory tests
 main.py            # FastAPI app entry point
 pyproject.toml     # Dependencies
@@ -250,7 +267,7 @@ Each event includes stable traceability fields: `timestamp`, `event`, `session_i
 ### Phase 5 — Integrations
 - [x] Session persistence in a database (SQLite for dev, PostgreSQL for prod)
 - [x] Basic authentication for `/chat` endpoint
-- [ ] Replace mock backend with real API calls
+- [x] Replace mock backend with real API calls
 
 ### Phase 6 — UI and experience
 - [ ] Minimal chat web interface (Gradio or plain HTML/JS)

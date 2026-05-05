@@ -1,4 +1,16 @@
 from datetime import date
+from typing import Protocol
+
+
+class BackendClient(Protocol):
+    def get_order_status(self, order_id: str | None) -> dict:
+        ...
+
+    def change_booking(self, order_id: str | None, new_date: str | None) -> dict:
+        ...
+
+    def fallback_support(self) -> dict:
+        ...
 
 
 def get_order_status(order_id: str | None) -> dict:
@@ -42,3 +54,14 @@ def fallback_support() -> dict:
         "code": "fallback",
         "message": "A support specialist will review your request.",
     }
+
+
+class MockBackendClient:
+    def get_order_status(self, order_id: str | None) -> dict:
+        return get_order_status(order_id)
+
+    def change_booking(self, order_id: str | None, new_date: str | None) -> dict:
+        return change_booking(order_id, new_date)
+
+    def fallback_support(self) -> dict:
+        return fallback_support()

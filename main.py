@@ -3,7 +3,17 @@ import logging
 from fastapi import FastAPI, Header, HTTPException
 
 from app.agent import SupportAgent
-from app.config import get_chat_api_key, get_memory_backend, get_sqlite_db_path, load_environment
+from app.backend import MockBackendClient
+from app.backend_real import RealBackendClient
+from app.config import (
+    get_backend_mode,
+    get_chat_api_key,
+    get_memory_backend,
+    get_real_backend_api_key,
+    get_real_backend_base_url,
+    get_sqlite_db_path,
+    load_environment,
+)
 from app.conversation_memory import InMemoryConversationMemory
 from app.exceptions import ConfigurationError
 from app.llm import LLMClient
@@ -19,6 +29,7 @@ app = FastAPI(title="Customer Support AI Agent Prototype")
 def build_agent() -> SupportAgent:
     llm_client = LLMClient()
     memory_backend = get_memory_backend()
+    backend_mode = get_backend_mode()
 
     # Runtime selection of the session memory backend.
     # If MEMORY_BACKEND=sqlite, agent state is persisted on disk via SQLite.
@@ -28,7 +39,15 @@ def build_agent() -> SupportAgent:
         # Default backend keeps state only in process memory.
         memory = InMemoryConversationMemory()
 
-    return SupportAgent(llm_client=llm_client, memory=memory)
+    if backend_mode == "real":
+        backend_client = RealBackendClient(
+            base_url=get_real_backend_base_url(),
+            api_key=get_real_backend_api_key(),
+        )
+    else:
+        backend_client = MockBackendClient()
+
+    return SupportAgent(llm_client=llm_client, memory=memory, backend_client=backend_client)
 
 
 @app.post("/chat", response_model=ChatResponse)
