@@ -93,3 +93,10 @@ def test_chat_rejects_missing_api_key_even_when_configured(client):
         response = client.post("/chat", json={"message": "Hello"})
 
         assert response.status_code == 401
+
+
+def test_ui_endpoint_serves_html(client):
+    response = client.get("/ui")
+
+    assert response.status_code == 200
+    assert "Minimal Chat UI" in response.text

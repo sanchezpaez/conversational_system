@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conversational Parloa - Minimal UI</title>
+  </head>
+  <body>
+    <h1>Minimal Chat UI</h1>
+
+    <label for="api-key">X-API-Key</label>
+    <input id="api-key" type="password" placeholder="Enter CHAT_API_KEY" />
+
+    <br /><br />
+
+    <label for="session-id">Session ID (optional)</label>
+    <input id="session-id" type="text" placeholder="session-1" />
+
+    <br /><br />
+
+    <label for="message">Message</label>
+    <input id="message" type="text" placeholder="Where is my order AB-123?" />
+    <button id="send-btn" type="button">Send</button>
+
+    <h2>History</h2>
+    <div id="history"></div>
+
+    <script>
+      const sendButton = document.getElementById("send-btn");
+      const messageInput = document.getElementById("message");
+      const sessionInput = document.getElementById("session-id");
+      const apiKeyInput = document.getElementById("api-key");
+      const historyDiv = document.getElementById("history");
+
+      function appendLine(text) {
+        const p = document.createElement("p");
+        p.textContent = text;
+        historyDiv.appendChild(p);
+      }
+
+      async function sendMessage() {
+        const message = messageInput.value.trim();
+        const sessionId = sessionInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+
+        if (!message) {
+          appendLine("UI: Please write a message first.");
+          return;
+        }
+
+        if (!apiKey) {
+          appendLine("UI: Please provide X-API-Key.");
+          return;
+        }
+
+        const payload = { message };
+        if (sessionId) {
+          payload.session_id = sessionId;
+        }
+
+        appendLine(`You: ${message}`);
+
+        try {
+          const response = await fetch("/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-Key": apiKey,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            appendLine(`API Error (${response.status}): ${data.detail || "unknown"}`);
+            return;
+          }
+
+          appendLine(`Agent: ${data.reply}`);
+        } catch (error) {
+          appendLine(`UI Error: ${error.message}`);
+        }
+
+        messageInput.value = "";
+      }
+
+      sendButton.addEventListener("click", sendMessage);
+      messageInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+      });
+    </script>
+  </body>
+</html>

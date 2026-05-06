@@ -96,6 +96,18 @@ uv run python scripts/demo.py --batch
 
    Or visit [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for interactive API docs.
 
+### Option 3: Use the minimal web UI
+
+1. Start the API server:
+
+   ```bash
+   uv sync
+   uv run uvicorn main:app --reload
+   ```
+
+2. Open [http://127.0.0.1:8000/ui](http://127.0.0.1:8000/ui)
+3. Enter `CHAT_API_KEY`, optional `session_id`, and your message.
+
 ## Setup
 
 1. Install base dependencies:
@@ -154,6 +166,17 @@ Future improvements:
 - Add scopes/roles and key rotation.
 - Add per-user audit trails and rate limiting.
 
+## Why minimal UI now (and what to improve later)
+
+- For this phase, a plain HTML/JS UI keeps the integration simple and fully aligned with the existing `/chat` API.
+- It validates end-to-end behavior (auth header, session_id flow, multilingual replies) before investing in a richer frontend.
+- This reduces rework while backend contracts are still evolving.
+
+Future improvements:
+- Add quick-action buttons and cleaner layout.
+- Add persistent chat history and richer error states.
+- Move to a fuller frontend stack if/when product requirements justify it.
+
 ## Project structure
 
 ```
@@ -177,6 +200,8 @@ tests/
    test_backend_real.py  # Real backend client tests
    test_main_backend_mode.py  # Backend mode selection tests
    test_sqlite_memory.py  # SQLite memory tests
+ui/
+   index.html        # Minimal chat web UI
 main.py            # FastAPI app entry point
 pyproject.toml     # Dependencies
 ```
@@ -270,7 +295,7 @@ Each event includes stable traceability fields: `timestamp`, `event`, `session_i
 - [x] Replace mock backend with real API calls
 
 ### Phase 6 — UI and experience
-- [ ] Minimal chat web interface (Gradio or plain HTML/JS)
+- [x] Minimal chat web interface (Gradio or plain HTML/JS)
 - [ ] Quick-action buttons ("check my order", "change date")
 - [ ] Visible conversation history in UI
 

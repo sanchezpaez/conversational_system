@@ -1,6 +1,8 @@
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import HTMLResponse
 
 from app.agent import SupportAgent
 from app.backend import MockBackendClient
@@ -24,6 +26,7 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 load_environment()
 
 app = FastAPI(title="Customer Support AI Agent Prototype")
+UI_FILE_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
 
 
 def build_agent() -> SupportAgent:
@@ -48,6 +51,12 @@ def build_agent() -> SupportAgent:
         backend_client = MockBackendClient()
 
     return SupportAgent(llm_client=llm_client, memory=memory, backend_client=backend_client)
+
+
+@app.get("/ui", response_class=HTMLResponse)
+def ui() -> HTMLResponse:
+    html = UI_FILE_PATH.read_text(encoding="utf-8")
+    return HTMLResponse(content=html)
 
 
 @app.post("/chat", response_model=ChatResponse)
