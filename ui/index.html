@@ -3,62 +3,165 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Conversational Parloa - Minimal UI</title>
+    <title>Support Agent – Chat UI</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f5f5f5;
+        display: flex;
+        justify-content: center;
+        padding: 2rem 1rem;
+        min-height: 100vh;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 640px;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      h1 { font-size: 1.25rem; color: #111; }
+
+      .config-row {
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      .config-row label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.8rem;
+        color: #555;
+        flex: 1;
+      }
+
+      input[type="password"],
+      input[type="text"] {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        width: 100%;
+      }
+
+      input:focus { outline: 2px solid #4f86f7; border-color: transparent; }
+
+      #history {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        min-height: 200px;
+        max-height: 400px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .msg {
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        max-width: 85%;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      .msg.user  { background: #4f86f7; color: #fff; align-self: flex-end; }
+      .msg.agent { background: #efefef; color: #111; align-self: flex-start; }
+      .msg.error { background: #fdecea; color: #b00020; align-self: flex-start; font-size: 0.8rem; }
+
+      .input-row { display: flex; gap: 0.5rem; }
+      #message   { flex: 1; }
+
+      button {
+        padding: 0.5rem 1.25rem;
+        background: #4f86f7;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      button:disabled { background: #aac4fb; cursor: not-allowed; }
+    </style>
   </head>
   <body>
-    <h1>Minimal Chat UI</h1>
+    <div class="container">
+    <h1>Support Agent – Chat UI</h1>
 
-    <label for="api-key">X-API-Key</label>
-    <input id="api-key" type="password" placeholder="Enter CHAT_API_KEY" />
 
-    <br /><br />
+      <div class="config-row">
+        <label>
+          X-API-Key
+          <input id="api-key" type="password" placeholder="Enter CHAT_API_KEY" autocomplete="current-password" />
+        </label>
+        <label>
+          Session ID (optional)
+          <input id="session-id" type="text" placeholder="session-1" />
+        </label>
+      </div>
 
-    <label for="session-id">Session ID (optional)</label>
-    <input id="session-id" type="text" placeholder="session-1" />
+      <div id="history"></div>
 
-    <br /><br />
-
-    <label for="message">Message</label>
-    <input id="message" type="text" placeholder="Where is my order AB-123?" />
-    <button id="send-btn" type="button">Send</button>
-
-    <h2>History</h2>
-    <div id="history"></div>
+      <div class="input-row">
+        <input id="message" type="text" placeholder="Where is my order AB-123?" />
+        <button id="send-btn" type="button">Send</button>
+      </div>
+    </div>
 
     <script>
-      const sendButton = document.getElementById("send-btn");
+      const sendButton   = document.getElementById("send-btn");
       const messageInput = document.getElementById("message");
       const sessionInput = document.getElementById("session-id");
-      const apiKeyInput = document.getElementById("api-key");
-      const historyDiv = document.getElementById("history");
+      const apiKeyInput  = document.getElementById("api-key");
+      const historyDiv   = document.getElementById("history");
 
-      function appendLine(text) {
-        const p = document.createElement("p");
-        p.textContent = text;
-        historyDiv.appendChild(p);
+      // Persist api-key and session-id across page refreshes using localStorage.
+      // Secrets stored in localStorage are scoped to the origin (not shared cross-site).
+      const STORAGE_KEY = "chat_api_key";
+      const SESSION_KEY = "chat_session_id";
+
+      if (localStorage.getItem(STORAGE_KEY)) apiKeyInput.value  = localStorage.getItem(STORAGE_KEY);
+      if (localStorage.getItem(SESSION_KEY)) sessionInput.value = localStorage.getItem(SESSION_KEY);
+
+      apiKeyInput.addEventListener("change",  () => localStorage.setItem(STORAGE_KEY, apiKeyInput.value.trim()));
+      sessionInput.addEventListener("change", () => localStorage.setItem(SESSION_KEY, sessionInput.value.trim()));
+
+      function appendMsg(text, type) {
+        const div = document.createElement("div");
+        div.className = `msg ${type}`;
+        div.textContent = text;
+        historyDiv.appendChild(div);
+        // Auto-scroll to the latest message.
+        historyDiv.scrollTop = historyDiv.scrollHeight;
       }
 
       async function sendMessage() {
-        const message = messageInput.value.trim();
+        const message   = messageInput.value.trim();
         const sessionId = sessionInput.value.trim();
-        const apiKey = apiKeyInput.value.trim();
+        const apiKey    = apiKeyInput.value.trim();
 
-        if (!message) {
-          appendLine("UI: Please write a message first.");
-          return;
-        }
+        if (!apiKey)  { appendMsg("Please provide X-API-Key.", "error"); return; }
+        if (!message) { appendMsg("Please write a message first.", "error"); return; }
 
-        if (!apiKey) {
-          appendLine("UI: Please provide X-API-Key.");
-          return;
-        }
+        appendMsg(message, "user");
+        messageInput.value = "";
+
+        // Disable input while waiting for the API response.
+        sendButton.disabled    = true;
+        sendButton.textContent = "Sending\u2026";
 
         const payload = { message };
-        if (sessionId) {
-          payload.session_id = sessionId;
-        }
-
-        appendLine(`You: ${message}`);
+        if (sessionId) payload.session_id = sessionId;
 
         try {
           const response = await fetch("/chat", {
@@ -72,24 +175,29 @@
 
           const data = await response.json();
 
-          if (!response.ok) {
-            appendLine(`API Error (${response.status}): ${data.detail || "unknown"}`);
-            return;
+          if (response.status === 401) {
+            appendMsg("Authentication error: check your X-API-Key.", "error");
+          } else if (response.status === 503) {
+            appendMsg("Service not configured – OPENAI_API_KEY is missing on the server.", "error");
+          } else if (!response.ok) {
+            appendMsg(`Server error (${response.status}): ${data.detail || "unknown"}`, "error");
+          } else {
+            appendMsg(data.reply, "agent");
           }
-
-          appendLine(`Agent: ${data.reply}`);
-        } catch (error) {
-          appendLine(`UI Error: ${error.message}`);
+        } catch (err) {
+          // Network-level failure (server down, no internet, etc.).
+          appendMsg(`Network error: ${err.message}`, "error");
+        } finally {
+          // Always re-enable the button so the user can retry.
+          sendButton.disabled    = false;
+          sendButton.textContent = "Send";
+          messageInput.focus();
         }
-
-        messageInput.value = "";
       }
 
       sendButton.addEventListener("click", sendMessage);
       messageInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          sendMessage();
-        }
+        if (event.key === "Enter") sendMessage();
       });
     </script>
   </body>

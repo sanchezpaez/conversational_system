@@ -55,6 +55,8 @@ def build_agent() -> SupportAgent:
 
 @app.get("/ui", response_class=HTMLResponse)
 def ui() -> HTMLResponse:
+    if not UI_FILE_PATH.exists():
+        raise HTTPException(status_code=404, detail="UI not found.")
     html = UI_FILE_PATH.read_text(encoding="utf-8")
     return HTMLResponse(content=html)
 

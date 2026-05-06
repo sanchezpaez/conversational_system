@@ -8,7 +8,7 @@ from app.exceptions import ConfigurationError
 
 def load_environment() -> None:
     env_path = Path(__file__).resolve().parent.parent / ".env"
-    load_dotenv(dotenv_path=env_path, override=False)
+    load_dotenv(dotenv_path=env_path, override=True)
 
 
 def get_openai_api_key() -> str:

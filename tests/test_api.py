@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from main import app
 
@@ -60,6 +60,18 @@ def test_chat_endpoint_validates_input(client):
     assert response.status_code == 422  # Validation error
 
 
+def test_chat_rejects_empty_session_id(client):
+    """Test /chat endpoint rejects empty session identifiers."""
+    with patch("main.get_chat_api_key", return_value="test-key"):
+        response = client.post(
+            "/chat",
+            json={"message": "Hello", "session_id": ""},
+            headers={"X-API-Key": "test-key"},
+        )
+
+    assert response.status_code == 422
+
+
 def test_chat_endpoint_handles_configuration_error(client):
     """Test /chat endpoint returns 503 when OPENAI_API_KEY is missing."""
     from app.exceptions import ConfigurationError
@@ -99,4 +111,15 @@ def test_ui_endpoint_serves_html(client):
     response = client.get("/ui")
 
     assert response.status_code == 200
-    assert "Minimal Chat UI" in response.text
+    assert "Support Agent" in response.text
+
+
+def test_ui_endpoint_returns_404_when_file_is_missing(client):
+    missing_ui_file = Mock()
+    missing_ui_file.exists.return_value = False
+
+    with patch("main.UI_FILE_PATH", missing_ui_file):
+        response = client.get("/ui")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "UI not found."
