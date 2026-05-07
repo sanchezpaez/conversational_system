@@ -109,6 +109,28 @@ uv run python scripts/demo.py --batch
 3. Enter `CHAT_API_KEY`, optional `session_id`, and your message.
 4. You can also use the quick-action buttons to send common test requests.
 
+### Option 4: Run with Docker (Phase 7.1)
+
+1. Create `.env` from the template if you do not have one yet:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Build and start the container:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Open [http://127.0.0.1:8000/ui](http://127.0.0.1:8000/ui)
+
+4. Stop services when finished:
+
+   ```bash
+   docker compose down
+   ```
+
 ## Setup
 
 1. Install base dependencies:
@@ -141,6 +163,21 @@ uv run python scripts/demo.py --batch
    REAL_BACKEND_BASE_URL=https://backend.example
    REAL_BACKEND_API_KEY=your_real_backend_api_key_here
    ```
+
+## Docker notes (Phase 7.1)
+
+- `Dockerfile` builds a production-like runtime image for the FastAPI app.
+- `docker-compose.yml` runs the app on `localhost:8000` and loads variables from `.env`.
+- `.dockerignore` keeps local caches/secrets out of the image build context.
+- This phase is still local execution; public internet access requires a separate deployment step.
+- Runtime Docker integration test is available in `tests/test_docker_runtime.py`.
+- Execute it manually with:
+
+   ```bash
+   RUN_DOCKER_TESTS=1 uv run pytest -q tests/test_docker_runtime.py
+   ```
+
+   Note: this requires Docker daemon running and port `8000` free.
 
 ## How the API key is loaded
 
@@ -203,6 +240,9 @@ tests/
    test_sqlite_memory.py  # SQLite memory tests
 ui/
    index.html        # Minimal chat web UI
+Dockerfile         # Container image definition
+docker-compose.yml # Local container orchestration
+.dockerignore      # Exclude local files from Docker build context
 main.py            # FastAPI app entry point
 pyproject.toml     # Dependencies
 ```
@@ -301,7 +341,7 @@ Each event includes stable traceability fields: `timestamp`, `event`, `session_i
 - [x] Visible conversation history in UI
 
 ### Phase 7 — Production
-- [ ] Dockerfile and docker-compose
+- [x] Dockerfile and docker-compose
 - [ ] CI/CD with GitHub Actions (lint + tests on PR)
 - [ ] Environment-based configuration (dev / staging / prod)
 
