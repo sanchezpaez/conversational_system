@@ -26,6 +26,11 @@
 
       h1 { font-size: 1.25rem; color: #111; }
 
+      .subtitle {
+        color: #666;
+        font-size: 0.9rem;
+      }
+
       .config-row {
         display: flex;
         gap: 0.75rem;
@@ -76,6 +81,29 @@
       .msg.user  { background: #4f86f7; color: #fff; align-self: flex-end; }
       .msg.agent { background: #efefef; color: #111; align-self: flex-start; }
       .msg.error { background: #fdecea; color: #b00020; align-self: flex-start; font-size: 0.8rem; }
+      .msg.placeholder {
+        background: transparent;
+        color: #888;
+        align-self: center;
+        text-align: center;
+        font-style: italic;
+      }
+
+      .quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .quick-action-btn {
+        background: #fff;
+        color: #1f3f83;
+        border: 1px solid #cfe0ff;
+      }
+
+      .quick-action-btn:hover:not(:disabled) {
+        background: #eef4ff;
+      }
 
       .input-row { display: flex; gap: 0.5rem; }
       #message   { flex: 1; }
@@ -97,6 +125,7 @@
   <body>
     <div class="container">
     <h1>Support Agent – Chat UI</h1>
+      <p class="subtitle">Fast internal UI for manual support-agent testing.</p>
 
 
       <div class="config-row">
@@ -108,6 +137,12 @@
           Session ID (optional)
           <input id="session-id" type="text" placeholder="session-1" />
         </label>
+      </div>
+
+      <div class="quick-actions">
+        <button class="quick-action-btn" type="button" data-message="Where is my order AB-123?">Check order</button>
+        <button class="quick-action-btn" type="button" data-message="I want to change booking AB-123 to 2026-05-10">Change booking</button>
+        <button class="quick-action-btn" type="button" data-message="Necesito ayuda con mi pedido AB-123">Ayuda en español</button>
       </div>
 
       <div id="history"></div>
@@ -124,11 +159,13 @@
       const sessionInput = document.getElementById("session-id");
       const apiKeyInput  = document.getElementById("api-key");
       const historyDiv   = document.getElementById("history");
+      const quickActionButtons = document.querySelectorAll(".quick-action-btn");
 
       // Persist api-key and session-id across page refreshes using localStorage.
       // Secrets stored in localStorage are scoped to the origin (not shared cross-site).
       const STORAGE_KEY = "chat_api_key";
       const SESSION_KEY = "chat_session_id";
+      let isSending = false;
 
       if (localStorage.getItem(STORAGE_KEY)) apiKeyInput.value  = localStorage.getItem(STORAGE_KEY);
       if (localStorage.getItem(SESSION_KEY)) sessionInput.value = localStorage.getItem(SESSION_KEY);
@@ -136,7 +173,16 @@
       apiKeyInput.addEventListener("change",  () => localStorage.setItem(STORAGE_KEY, apiKeyInput.value.trim()));
       sessionInput.addEventListener("change", () => localStorage.setItem(SESSION_KEY, sessionInput.value.trim()));
 
+      function renderEmptyHistory() {
+        if (historyDiv.childElementCount === 0) {
+          appendMsg("No messages yet. Start with a quick action or write your own question.", "placeholder");
+        }
+      }
+
       function appendMsg(text, type) {
+        const placeholder = historyDiv.querySelector(".msg.placeholder");
+        if (placeholder) placeholder.remove();
+
         const div = document.createElement("div");
         div.className = `msg ${type}`;
         div.textContent = text;
@@ -145,7 +191,18 @@
         historyDiv.scrollTop = historyDiv.scrollHeight;
       }
 
+      function setSendingState(nextState) {
+        isSending = nextState;
+        sendButton.disabled = nextState;
+        sendButton.textContent = nextState ? "Sending\u2026" : "Send";
+        quickActionButtons.forEach((button) => {
+          button.disabled = nextState;
+        });
+      }
+
       async function sendMessage() {
+        if (isSending) return;
+
         const message   = messageInput.value.trim();
         const sessionId = sessionInput.value.trim();
         const apiKey    = apiKeyInput.value.trim();
@@ -157,8 +214,7 @@
         messageInput.value = "";
 
         // Disable input while waiting for the API response.
-        sendButton.disabled    = true;
-        sendButton.textContent = "Sending\u2026";
+        setSendingState(true);
 
         const payload = { message };
         if (sessionId) payload.session_id = sessionId;
@@ -189,8 +245,7 @@
           appendMsg(`Network error: ${err.message}`, "error");
         } finally {
           // Always re-enable the button so the user can retry.
-          sendButton.disabled    = false;
-          sendButton.textContent = "Send";
+          setSendingState(false);
           messageInput.focus();
         }
       }
@@ -199,6 +254,14 @@
       messageInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") sendMessage();
       });
+      quickActionButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          messageInput.value = button.dataset.message;
+          sendMessage();
+        });
+      });
+
+      renderEmptyHistory();
     </script>
   </body>
 </html>

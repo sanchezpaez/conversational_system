@@ -107,6 +107,7 @@ uv run python scripts/demo.py --batch
 
 2. Open [http://127.0.0.1:8000/ui](http://127.0.0.1:8000/ui)
 3. Enter `CHAT_API_KEY`, optional `session_id`, and your message.
+4. You can also use the quick-action buttons to send common test requests.
 
 ## Setup
 
@@ -173,7 +174,7 @@ Future improvements:
 - This reduces rework while backend contracts are still evolving.
 
 Future improvements:
-- Add quick-action buttons and cleaner layout.
+- Add richer client-side tests for the JavaScript interactions.
 - Add persistent chat history and richer error states.
 - Move to a fuller frontend stack if/when product requirements justify it.
 
