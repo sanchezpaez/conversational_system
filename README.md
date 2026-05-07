@@ -297,8 +297,8 @@ Each event includes stable traceability fields: `timestamp`, `event`, `session_i
 
 ### Phase 6 — UI and experience
 - [x] Minimal chat web interface (Gradio or plain HTML/JS)
-- [ ] Quick-action buttons ("check my order", "change date")
-- [ ] Visible conversation history in UI
+- [x] Quick-action buttons ("check my order", "change date")
+- [x] Visible conversation history in UI
 
 ### Phase 7 — Production
 - [ ] Dockerfile and docker-compose
