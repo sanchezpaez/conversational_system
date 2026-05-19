@@ -342,7 +342,7 @@ Each event includes stable traceability fields: `timestamp`, `event`, `session_i
 
 ### Phase 7 — Production
 - [x] Dockerfile and docker-compose
-- [ ] CI/CD with GitHub Actions (lint + tests on PR)
+- [x] CI/CD with GitHub Actions (tests + compose validation on PR)
 - [ ] Environment-based configuration (dev / staging / prod)
 
 ### Future ideas
