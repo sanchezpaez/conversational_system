@@ -1,9 +1,16 @@
+from datetime import date, timedelta
+
 from app.agent import SupportAgent
 from app.models import EntityExtraction, IntentDecision
 
 
+def _future_iso_date(days_ahead: int) -> str:
+    return (date.today() + timedelta(days=days_ahead)).isoformat()
+
+
 def test_memory_completes_change_booking_across_three_turns(mock_llm_client):
     agent = SupportAgent(llm_client=mock_llm_client)
+    future_date = _future_iso_date(30)
 
     mock_llm_client.classify_intent = lambda _: IntentDecision(intent="change_booking")
 
@@ -14,7 +21,7 @@ def test_memory_completes_change_booking_across_three_turns(mock_llm_client):
         return EntityExtraction(order_id="7821", date=None)
 
     def extract_turn_3(_: str) -> EntityExtraction:
-        return EntityExtraction(order_id=None, date="2026-05-10")
+        return EntityExtraction(order_id=None, date=future_date)
 
     mock_llm_client.extract_entities = extract_turn_1
     first = agent.process("I need to change my booking", session_id="s1")
@@ -31,7 +38,7 @@ def test_memory_completes_change_booking_across_three_turns(mock_llm_client):
     assert third.backend_result["ok"] is True
     assert third.backend_result["code"] == "booking_changed"
     assert third.backend_result["order_id"] == "7821"
-    assert third.backend_result["new_date"] == "2026-05-10"
+    assert third.backend_result["new_date"] == future_date
 
 
 def test_memory_isolated_between_sessions(mock_llm_client):
@@ -67,13 +74,14 @@ def test_memory_isolated_between_sessions(mock_llm_client):
 
 def test_pending_clarification_clears_after_success(mock_llm_client):
     agent = SupportAgent(llm_client=mock_llm_client)
+    future_date = _future_iso_date(31)
     mock_llm_client.classify_intent = lambda _: IntentDecision(intent="change_booking")
 
     def extract_entities(message: str) -> EntityExtraction:
         if "AB-123" in message:
             return EntityExtraction(order_id="AB-123", date=None)
-        if "2026-05-09" in message:
-            return EntityExtraction(order_id=None, date="2026-05-09")
+        if future_date in message:
+            return EntityExtraction(order_id=None, date=future_date)
         return EntityExtraction(order_id=None, date=None)
 
     mock_llm_client.extract_entities = extract_entities
@@ -82,7 +90,7 @@ def test_pending_clarification_clears_after_success(mock_llm_client):
     assert first.backend_result["code"] == "need_clarification"
 
     agent.process("Order AB-123", session_id="clear-1")
-    success = agent.process("2026-05-09", session_id="clear-1")
+    success = agent.process(future_date, session_id="clear-1")
     assert success.backend_result["ok"] is True
 
     state = agent.memory.get("clear-1")
