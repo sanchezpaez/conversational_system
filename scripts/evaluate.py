@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import sys
 from dataclasses import dataclass
+from datetime import date, timedelta
 from unittest.mock import MagicMock
 
 sys.path.insert(0, __file__.rsplit("/scripts", 1)[0])
@@ -38,6 +39,10 @@ class EvalCase:
     expected_code: str | None = None
 
 
+def _future_iso_date(days_ahead: int) -> str:
+    return (date.today() + timedelta(days=days_ahead)).isoformat()
+
+
 # Labelled cases covering the main intent/entity combinations
 EVAL_CASES: list[EvalCase] = [
     EvalCase(
@@ -49,7 +54,7 @@ EVAL_CASES: list[EvalCase] = [
     ),
     EvalCase(
         label="change_booking with full entities",
-        message="Can you move booking for order 7821 to 2026-08-15?",
+        message=f"Can you move booking for order 7821 to {_future_iso_date(20)}?",
         expected_intent="change_booking",
         expected_ok=True,
         expected_code="booking_changed",
