@@ -29,6 +29,11 @@ def get_sqlite_db_path() -> str:
     return os.getenv("SQLITE_DB_PATH", "data/conversation_state.db")
 
 
+def get_orders_db_path() -> str:
+    load_environment()
+    return os.getenv("ORDERS_DB_PATH", "data/orders.db")
+
+
 def get_chat_api_key() -> str:
     load_environment()
     api_key = os.getenv("CHAT_API_KEY")

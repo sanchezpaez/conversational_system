@@ -10,9 +10,20 @@ Python prototype of a customer support AI agent using FastAPI and the OpenAI API
 	1. Intent classification (`order_status`, `change_booking`, `fallback`) using structured prompts and few-shot examples
 	2. Entity extraction (`order_id`, `date`) with JSON output
    3. Clarification step when required entities are missing
-   4. Mock backend function call
+   4. Local backend with SQLite-seeded order data
    5. Final response generation via prompt templates
 - Simple logging of decisions
+
+## Seeded local order data
+
+The mock backend is now backed by a small SQLite database seeded with ten realistic orders. That gives the agent a real local dataset to reason about without needing a production backend yet.
+
+- `order_id` is the customer-facing identifier that the user provides in chat.
+- `id` stays as the internal SQLite row ID and is not shown to the user.
+- `booking_date` is the booking date used for change-booking flows.
+- The database is created automatically under `data/orders.db` and is populated on first use if it is empty.
+
+To change the file location, set `ORDERS_DB_PATH` in `.env`.
 
 ## Conversation contract (v1)
 
