@@ -3,6 +3,7 @@ from app.models import EntityExtraction, IntentName, LanguageCode
 REQUIRED_FIELDS: dict[IntentName, list[str]] = {
     "order_status": ["order_id"],
     "change_booking": ["order_id", "date"],
+    "help": ["order_id"],
     "fallback": [],
 }
 

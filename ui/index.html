@@ -141,14 +141,14 @@
 
       <div class="quick-actions">
         <button class="quick-action-btn" type="button" data-message="Where is my order AB-123?">Check order</button>
-        <button class="quick-action-btn" type="button" data-message="I want to change booking AB-123 to 2026-05-10">Change booking</button>
-        <button class="quick-action-btn" type="button" data-message="Necesito ayuda con mi pedido AB-123">Ayuda en español</button>
+        <button class="quick-action-btn" type="button" data-message="I want to change my booking for order 7821 to 2026-09-15">Change booking</button>
+        <button class="quick-action-btn" type="button" data-message="I need help with my booking">Need help</button>
       </div>
 
       <div id="history"></div>
 
       <div class="input-row">
-        <input id="message" type="text" placeholder="Where is my order AB-123?" />
+        <input id="message" type="text" placeholder="" />
         <button id="send-btn" type="button">Send</button>
       </div>
     </div>
@@ -161,21 +161,11 @@
       const historyDiv   = document.getElementById("history");
       const quickActionButtons = document.querySelectorAll(".quick-action-btn");
 
-      // Persist api-key and session-id across page refreshes using localStorage.
-      // Secrets stored in localStorage are scoped to the origin (not shared cross-site).
-      const STORAGE_KEY = "chat_api_key";
-      const SESSION_KEY = "chat_session_id";
       let isSending = false;
-
-      if (localStorage.getItem(STORAGE_KEY)) apiKeyInput.value  = localStorage.getItem(STORAGE_KEY);
-      if (localStorage.getItem(SESSION_KEY)) sessionInput.value = localStorage.getItem(SESSION_KEY);
-
-      apiKeyInput.addEventListener("change",  () => localStorage.setItem(STORAGE_KEY, apiKeyInput.value.trim()));
-      sessionInput.addEventListener("change", () => localStorage.setItem(SESSION_KEY, sessionInput.value.trim()));
 
       function renderEmptyHistory() {
         if (historyDiv.childElementCount === 0) {
-          appendMsg("No messages yet. Start with a quick action or write your own question.", "placeholder");
+          appendMsg("No messages yet. Use a quick action or write your own question.", "placeholder");
         }
       }
 
@@ -257,7 +247,7 @@
       quickActionButtons.forEach((button) => {
         button.addEventListener("click", () => {
           messageInput.value = button.dataset.message;
-          sendMessage();
+          messageInput.focus();
         });
       });
 

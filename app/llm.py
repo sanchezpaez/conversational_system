@@ -20,7 +20,8 @@ class LLMClient:
                 "role": "system",
                 "content": (
                     "You are an intent classifier for customer support. "
-                    "Classify into exactly one intent: order_status, change_booking, fallback. "
+                    "Classify into exactly one intent: order_status, change_booking, help, fallback. "
+                    "Use 'help' when the user asks for assistance or support but has not yet stated a clear action. "
                     "Return strict JSON with key 'intent' only."
                 ),
             },
@@ -39,6 +40,14 @@ class LLMClient:
             {
                 "role": "assistant",
                 "content": '{"intent":"change_booking"}',
+            },
+            {
+                "role": "user",
+                "content": "I need help with my booking.",
+            },
+            {
+                "role": "assistant",
+                "content": '{"intent":"help"}',
             },
             {
                 "role": "user",

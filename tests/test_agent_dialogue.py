@@ -44,3 +44,30 @@ def test_agent_rejects_past_date_for_change_booking(mock_llm_client, monkeypatch
     assert result.backend_result["ok"] is False
     assert result.backend_result["code"] == "date_in_past"
     assert "future date" in result.reply
+
+
+def test_agent_asks_for_order_id_when_user_requests_help(mock_llm_client):
+    agent = SupportAgent(llm_client=mock_llm_client)
+
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="help")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id=None, date=None)
+
+    result = agent.process("I need help with my booking")
+
+    assert result.backend_result["ok"] is False
+    assert result.backend_result["code"] == "need_clarification"
+    assert result.backend_result["missing_fields"] == ["order_id"]
+    assert "order ID" in result.reply
+
+
+def test_agent_resolves_help_with_order_id(mock_llm_client):
+    agent = SupportAgent(llm_client=mock_llm_client)
+
+    mock_llm_client.classify_intent = lambda _: IntentDecision(intent="help")
+    mock_llm_client.extract_entities = lambda _: EntityExtraction(order_id="AB-123", date=None)
+
+    result = agent.process("I need help with order AB-123")
+
+    assert result.backend_result["ok"] is True
+    assert result.backend_result["code"] == "order_status"
+    assert result.backend_result["order_id"] == "AB-123"

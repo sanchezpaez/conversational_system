@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-IntentName = Literal["order_status", "change_booking", "fallback"]
+IntentName = Literal["order_status", "change_booking", "help", "fallback"]
 LanguageCode = Literal["en", "es"]
 
 

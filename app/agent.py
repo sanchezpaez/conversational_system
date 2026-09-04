@@ -17,11 +17,13 @@ RESPONSE_TEMPLATES = {
     "en": {
         "order_status": "Good news — I found order {order_id}. Current status: {status}.",
         "change_booking": "All done! I've updated order {order_id} to the new date: {new_date}.",
+        "help": "I can help with that. I found order {order_id}. Current status: {status}.",
         "fallback": "I'm sorry I wasn't able to handle this automatically. {message}",
     },
     "es": {
         "order_status": "Buenas noticias: encontré el pedido {order_id}. Estado actual: {status}.",
         "change_booking": "Listo. He actualizado el pedido {order_id} a la nueva fecha: {new_date}.",
+        "help": "Puedo ayudarte con eso. He encontrado el pedido {order_id}. Estado actual: {status}.",
         "fallback": "Lo siento, no he podido gestionar esto automáticamente. {message}",
     },
 }
@@ -150,7 +152,7 @@ class SupportAgent:
                 language=detected_language,
             )
 
-        if intent_name == "order_status":
+        if intent_name in {"order_status", "help"}:
             backend_result = self.backend.get_order_status(entities.order_id)
         elif intent_name == "change_booking":
             if self._is_past_iso_date(entities.date):
