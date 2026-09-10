@@ -19,6 +19,10 @@ Build a foundation for a Parloa conversational assistant.
 - Load environment variables from `.env` via a centralized config module.
 - Read `OPENAI_API_KEY` from environment variables after loading `.env`.
 - Keep `.env` out of version control and provide a `.env.example` file when needed.
+- Preferred collaboration model: the user writes the code first when possible, and the assistant gives small hints, targeted suggestions, or fixes only when asked or when the code is clearly blocked.
+- Do not replace the user's implementation with a full generated patch unless explicitly requested.
+- Prefer nudges over completion: offer the next step, a corrected snippet, or a concrete suggestion, and let the user decide whether to apply it.
+- If the user is actively editing code, keep the assistant output short and focused on the exact issue instead of rewriting large sections.
 
 ## Change workflow
 - Each change must be small, reviewable and focused on one thing.
