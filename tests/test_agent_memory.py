@@ -74,7 +74,7 @@ def test_memory_isolated_between_sessions(mock_llm_client):
     assert result_b.backend_result["order_id"] == "2222"
 
 
-def test_pending_clarification_clears_after_success(mock_llm_client):
+def test_pending_fields_clears_after_success(mock_llm_client):
     agent = SupportAgent(llm_client=mock_llm_client)
     future_date = _future_iso_date(31)
     mock_llm_client.classify_intent = lambda _: IntentDecision(intent="change_booking")
@@ -96,7 +96,7 @@ def test_pending_clarification_clears_after_success(mock_llm_client):
     assert success.backend_result["ok"] is True
 
     state = agent.memory.get("clear-1")
-    assert state.pending_clarification == []
+    assert state.pending_fields == []
 
 
 def test_intent_change_mid_conversation_resets_state(mock_llm_client):
@@ -119,7 +119,7 @@ def test_intent_change_mid_conversation_resets_state(mock_llm_client):
     assert second.backend_result["order_id"] == "ORD-42"
     # Pending clarification must be cleared
     state = agent.memory.get("switch-1")
-    assert state.pending_clarification == []
+    assert state.pending_fields == []
     assert state.last_intent == "order_status"
 
 

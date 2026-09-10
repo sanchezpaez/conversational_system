@@ -73,7 +73,7 @@ class SupportAgent:
         )
 
         if (
-            prior_state.pending_clarification
+            prior_state.pending_fields
             and prior_state.last_intent is not None
             and intent_name != prior_state.last_intent
         ):
@@ -89,13 +89,18 @@ class SupportAgent:
             if session_id:
                 self.memory.upsert(session_id, prior_state)
 
-        if prior_state.pending_clarification and prior_state.last_intent is not None:
+        previous_entities = EntityExtraction(
+            order_id=prior_state.order_id,
+            date=prior_state.booking_date,
+        )
+
+        if prior_state.pending_fields and prior_state.last_intent is not None:
             fresh_entities = self.llm_client.extract_entities(message)
-            entities = self._merge_entities(prior_state.last_entities, fresh_entities)
+            entities = self._merge_entities(previous_entities, fresh_entities)
         else:
             entities = self.llm_client.extract_entities(message)
 
-        entities = self._resolve_anaphora_entities(message, entities, prior_state.last_entities)
+        entities = self._resolve_anaphora_entities(message, entities, previous_entities)
         self._log_event(
             event="entities_extracted",
             session_id=session_id,
@@ -125,7 +130,7 @@ class SupportAgent:
                 prior_state=prior_state,
                 intent_name=intent_name,
                 entities=entities,
-                pending_clarification=missing_fields,
+                pending_fields=missing_fields,
                 backend_result=backend_result,
                 language=detected_language,
             )
@@ -169,7 +174,7 @@ class SupportAgent:
             prior_state=prior_state,
             intent_name=intent_name,
             entities=entities,
-            pending_clarification=[],
+            pending_fields=[],
             backend_result=backend_result,
             language=detected_language,
         )
@@ -261,7 +266,7 @@ class SupportAgent:
         prior_state: ConversationState,
         intent_name: str,
         entities: EntityExtraction,
-        pending_clarification: list[str],
+        pending_fields: list[str],
         backend_result: dict,
         language: LanguageCode,
     ) -> ConversationState:
@@ -280,13 +285,15 @@ class SupportAgent:
 
         return ConversationState(
             last_intent=intent_name,
-            last_entities=entities,
-            pending_clarification=pending_clarification,
+            order_id=entities.order_id,
+            booking_date=entities.date,
+            pending_fields=pending_fields,
             language=language,
             total_turns=total_turns,
             clarification_turns=clarification_turns,
             successful_turns=successful_turns,
             first_success_turn=first_success_turn,
+            updated_at=datetime.now(timezone.utc).isoformat(),
         )
 
     def _metrics_from_state(self, state: ConversationState) -> SessionMetrics:
@@ -310,11 +317,16 @@ class SupportAgent:
 
     def _reset_context_preserving_metrics(self, state: ConversationState) -> ConversationState:
         return ConversationState(
+            last_intent=state.last_intent,
+            order_id=state.order_id,
+            booking_date=state.booking_date,
+            pending_fields=state.pending_fields,
             language=state.language,
             total_turns=state.total_turns,
             clarification_turns=state.clarification_turns,
             successful_turns=state.successful_turns,
             first_success_turn=state.first_success_turn,
+            updated_at=state.updated_at,
         )
 
     def _log_event(

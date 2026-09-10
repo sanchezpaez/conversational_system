@@ -1,5 +1,4 @@
 from app.conversation_memory import ConversationState
-from app.models import EntityExtraction
 from app.sqlite_memory import SQLiteConversationMemory
 
 
@@ -12,8 +11,9 @@ def test_sqlite_memory_persists_state_between_instances(tmp_path):
         "s1",
         ConversationState(
             last_intent="change_booking",
-            last_entities=EntityExtraction(order_id="7821", date="2026-06-01"),
-            pending_clarification=["date"],
+            order_id="7821",
+            booking_date="2026-06-01",
+            pending_fields=["date"],
             language="es",
             total_turns=3,
             clarification_turns=1,
@@ -26,9 +26,9 @@ def test_sqlite_memory_persists_state_between_instances(tmp_path):
     state = store_two.get("s1")
 
     assert state.last_intent == "change_booking"
-    assert state.last_entities.order_id == "7821"
-    assert state.last_entities.date == "2026-06-01"
-    assert state.pending_clarification == ["date"]
+    assert state.order_id == "7821"
+    assert state.booking_date == "2026-06-01"
+    assert state.pending_fields == ["date"]
     assert state.language == "es"
     assert state.total_turns == 3
     assert state.clarification_turns == 1
@@ -45,15 +45,15 @@ def test_sqlite_memory_clear_pending(tmp_path):
         "s2",
         ConversationState(
             last_intent="order_status",
-            last_entities=EntityExtraction(order_id="AB-123", date=None),
-            pending_clarification=["order_id"],
+            order_id="AB-123",
+            pending_fields=["order_id"],
         ),
     )
 
     store.clear_pending("s2")
     state = store.get("s2")
 
-    assert state.pending_clarification == []
+    assert state.pending_fields == []
 
 
 def test_sqlite_memory_isolates_sessions(tmp_path):
@@ -65,7 +65,7 @@ def test_sqlite_memory_isolates_sessions(tmp_path):
         "a",
         ConversationState(
             last_intent="order_status",
-            last_entities=EntityExtraction(order_id="1111", date=None),
+            order_id="1111",
             language="en",
         ),
     )
@@ -73,7 +73,7 @@ def test_sqlite_memory_isolates_sessions(tmp_path):
         "b",
         ConversationState(
             last_intent="order_status",
-            last_entities=EntityExtraction(order_id="2222", date=None),
+            order_id="2222",
             language="es",
         ),
     )
@@ -81,7 +81,7 @@ def test_sqlite_memory_isolates_sessions(tmp_path):
     state_a = store.get("a")
     state_b = store.get("b")
 
-    assert state_a.last_entities.order_id == "1111"
+    assert state_a.order_id == "1111"
     assert state_a.language == "en"
-    assert state_b.last_entities.order_id == "2222"
+    assert state_b.order_id == "2222"
     assert state_b.language == "es"
