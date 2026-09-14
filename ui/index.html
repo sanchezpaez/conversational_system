@@ -162,6 +162,7 @@
       const quickActionButtons = document.querySelectorAll(".quick-action-btn");
 
       let isSending = false;
+      sessionInput.value = crypto.randomUUID();
 
       function renderEmptyHistory() {
         if (historyDiv.childElementCount === 0) {
@@ -207,7 +208,9 @@
         setSendingState(true);
 
         const payload = { message };
-        if (sessionId) payload.session_id = sessionId;
+        if (sessionId) {
+          payload.session_id = sessionId;
+        }
 
         try {
           const response = await fetch("/chat", {

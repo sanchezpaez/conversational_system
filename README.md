@@ -117,7 +117,7 @@ uv run python scripts/demo.py --batch
    ```
 
 2. Open [http://127.0.0.1:8000/ui](http://127.0.0.1:8000/ui)
-3. Enter `CHAT_API_KEY`, optional `session_id`, and your message.
+3. Enter `CHAT_API_KEY` and your message. The UI generates a new `session_id` on each page refresh; keep the page open to continue the same conversation.
 4. You can also use the quick-action buttons to send common test requests.
 
 ### Option 4: Run with Docker (Phase 7.1)
