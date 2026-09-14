@@ -14,3 +14,6 @@ wheels/
 
 # Locally generated conversation-session logs
 data/sessions/
+
+# Locally generated mock-order state
+data/orders.db
