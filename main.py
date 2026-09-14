@@ -1,4 +1,5 @@
 import logging
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
@@ -20,6 +21,7 @@ from app.conversation_memory import InMemoryConversationMemory
 from app.exceptions import ConfigurationError
 from app.llm import LLMClient
 from app.models import ChatRequest, ChatResponse
+from app.session_logger import create_session, record_turn
 from app.sqlite_memory import SQLiteConversationMemory
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -27,6 +29,7 @@ load_environment()
 
 app = FastAPI(title="Customer Support AI Agent Prototype")
 UI_FILE_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
+SESSION_DIR = str(Path(__file__).resolve().parent / "data" / "sessions")
 
 
 def build_agent() -> SupportAgent:
@@ -53,6 +56,46 @@ def build_agent() -> SupportAgent:
     return SupportAgent(llm_client=llm_client, memory=memory, backend_client=backend_client)
 
 
+def _log_chat_turn(session_id: str | None, message: str, response: ChatResponse) -> str:
+    effective_session_id = session_id or uuid.uuid4().hex
+    session_dir = SESSION_DIR
+
+    try:
+        create_session(
+            session_id=effective_session_id,
+            scenario="chat",
+            language=response.language or "en",
+            base_dir=session_dir,
+        )
+    except FileExistsError:
+        pass
+
+    entities = response.entities.model_dump()
+    if "date" in entities and "booking_date" not in entities:
+        entities["booking_date"] = entities.pop("date")
+
+    backend_result = response.backend_result or {}
+    pending_fields = list(backend_result.get("missing_fields") or [])
+    if backend_result.get("code") == "need_clarification":
+        pending_fields = list(backend_result.get("missing_fields") or [])
+    else:
+        pending_fields = []
+
+    record_turn(
+        session_id=effective_session_id,
+        user_message=message,
+        detected_intent=response.intent,
+        entities=entities,
+        pending_fields=pending_fields,
+        clarification_requested=backend_result.get("code") == "need_clarification",
+        backend_code=backend_result.get("code"),
+        ok=bool(backend_result.get("ok")),
+        bot_reply=response.reply,
+        base_dir=session_dir,
+    )
+    return effective_session_id
+
+
 @app.get("/ui", response_class=HTMLResponse)
 def ui() -> HTMLResponse:
     if not UI_FILE_PATH.exists():
@@ -72,7 +115,10 @@ def chat(
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         agent = build_agent()
-        return agent.process(request.message, request.session_id)
+        effective_session_id = request.session_id or uuid.uuid4().hex
+        response = agent.process(request.message, effective_session_id)
+        _log_chat_turn(effective_session_id, request.message, response)
+        return response
     except HTTPException as error:
         raise error
     except ConfigurationError as error:

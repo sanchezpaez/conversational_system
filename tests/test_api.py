@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
@@ -47,6 +49,31 @@ def test_chat_accepts_session_id(client, mock_llm_client):
         )
 
         assert response.status_code == 200
+
+
+def test_chat_records_multiple_turns_in_one_session_file(client, mock_llm_client, tmp_path):
+    session_id = "session-with-two-turns"
+    with (
+        patch("main.LLMClient") as MockLLM,
+        patch("main.get_chat_api_key", return_value="test-key"),
+        patch("main.SESSION_DIR", str(tmp_path)),
+    ):
+        MockLLM.return_value = mock_llm_client
+
+        for message in ("Where is my order AB-123?", "Thank you"):
+            response = client.post(
+                "/chat",
+                json={"message": message, "session_id": session_id},
+                headers={"X-API-Key": "test-key"},
+            )
+            assert response.status_code == 200
+
+    payload = json.loads((tmp_path / f"{session_id}.json").read_text())
+    assert payload["metrics"]["total_turns"] == 2
+    assert [turn["user_message"] for turn in payload["turns"]] == [
+        "Where is my order AB-123?",
+        "Thank you",
+    ]
 
 
 def test_chat_endpoint_validates_input(client):
