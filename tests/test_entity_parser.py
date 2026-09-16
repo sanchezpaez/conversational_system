@@ -8,6 +8,7 @@ from app.llm import LLMClient
     "message,expected_order_id,expected_date",
     [
         ("Where is my order AB-123?", "AB-123", None),
+        ("AB-123", "AB-123", None),
         ("Move order 7821 to 2026/04/02", "7821", "2026-04-02"),
         ("Please update order ZX-9 to April 2, 2026", "ZX-9", "2026-04-02"),
         ("No explicit entities here", None, None),

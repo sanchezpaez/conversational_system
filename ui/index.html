@@ -133,16 +133,12 @@
           X-API-Key
           <input id="api-key" type="password" placeholder="Enter CHAT_API_KEY" autocomplete="current-password" />
         </label>
-        <label>
-          Session ID (optional)
-          <input id="session-id" type="text" placeholder="session-1" />
-        </label>
       </div>
 
       <div class="quick-actions">
-        <button class="quick-action-btn" type="button" data-message="Where is my order AB-123?">Check order</button>
-        <button class="quick-action-btn" type="button" data-message="I want to change my booking for order 7821 to 2026-09-15">Change booking</button>
-        <button class="quick-action-btn" type="button" data-message="I need help with my booking">Need help</button>
+        <button class="quick-action-btn" type="button" data-message="Check my order">Check order</button>
+        <button class="quick-action-btn" type="button" data-message="I need to change my booking">Change booking</button>
+        <button class="quick-action-btn" type="button" data-message="I need help">Need help</button>
       </div>
 
       <div id="history"></div>
@@ -156,13 +152,12 @@
     <script>
       const sendButton   = document.getElementById("send-btn");
       const messageInput = document.getElementById("message");
-      const sessionInput = document.getElementById("session-id");
       const apiKeyInput  = document.getElementById("api-key");
       const historyDiv   = document.getElementById("history");
       const quickActionButtons = document.querySelectorAll(".quick-action-btn");
 
       let isSending = false;
-      sessionInput.value = crypto.randomUUID();
+      let sessionId = null;
 
       function renderEmptyHistory() {
         if (historyDiv.childElementCount === 0) {
@@ -191,18 +186,19 @@
         });
       }
 
-      async function sendMessage() {
+      async function sendMessage(buttonMessage = null) {
         if (isSending) return;
 
-        const message   = messageInput.value.trim();
-        const sessionId = sessionInput.value.trim();
+        const message = buttonMessage || messageInput.value.trim();
         const apiKey    = apiKeyInput.value.trim();
 
         if (!apiKey)  { appendMsg("Please provide X-API-Key.", "error"); return; }
         if (!message) { appendMsg("Please write a message first.", "error"); return; }
 
-        appendMsg(message, "user");
-        messageInput.value = "";
+        if (!buttonMessage) {
+          appendMsg(message, "user");
+          messageInput.value = "";
+        }
 
         // Disable input while waiting for the API response.
         setSendingState(true);
@@ -231,6 +227,7 @@
           } else if (!response.ok) {
             appendMsg(`Server error (${response.status}): ${data.detail || "unknown"}`, "error");
           } else {
+            sessionId = response.headers.get("X-Session-ID") || sessionId;
             appendMsg(data.reply, "agent");
           }
         } catch (err) {
@@ -249,8 +246,7 @@
       });
       quickActionButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          messageInput.value = button.dataset.message;
-          messageInput.focus();
+          sendMessage(button.dataset.message);
         });
       });
 

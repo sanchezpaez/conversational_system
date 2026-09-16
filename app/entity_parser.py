@@ -31,6 +31,13 @@ _ORDER_ID_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Match bare order identifiers such as "AB-123", "ZX-9", or "7821" when the
+# user sends only the order reference in the follow-up message.
+_BARE_ORDER_ID_PATTERN = re.compile(
+    r"\b(?:[A-Za-z]+-\d+|\d+|[A-Za-z0-9]+-\d+[A-Za-z0-9-]*)\b",
+    re.IGNORECASE,
+)
+
 _DATE_PATTERNS = [
     # ISO-like numeric dates: 2026-04-02 or 2026/04/02
     # Breakdown: year(4 digits) + separator(- or /) + month(2 digits) + separator + day(2 digits)
@@ -86,9 +93,18 @@ def extract_entities_locally(message: str) -> EntityExtraction:
 def _extract_order_id(message: str) -> str | None:
     """Return the first matched order identifier, if present."""
     match = _ORDER_ID_PATTERN.search(message)
-    if not match:
-        return None
-    return match.group(1)
+    if match:
+        return match.group(1)
+
+    for candidate in _BARE_ORDER_ID_PATTERN.findall(message):
+        cleaned = candidate.strip()
+        if any(token in cleaned.lower() for token in ("where", "move", "change", "order", "booking", "date")):
+            continue
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", cleaned):
+            continue
+        return cleaned
+
+    return None
 
 
 

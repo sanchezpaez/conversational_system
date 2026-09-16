@@ -23,12 +23,17 @@ def mock_llm_client():
         order_id = None
         date = None
 
-        # Extract order ID: look for patterns like "order AB-123" or "order 7821"
         import re
+
+        # Extract order ID: support both explicit "order AB-123" and bare follow-up values like "AB-123".
         order_pattern = r"order\s+([\w-]+)"
         order_match = re.search(order_pattern, message, re.IGNORECASE)
         if order_match:
             order_id = order_match.group(1)
+        else:
+            bare_match = re.search(r"\b([A-Za-z]+-\d+|\d+)\b", message)
+            if bare_match:
+                order_id = bare_match.group(1)
 
         # Extract date: look for ISO format YYYY-MM-DD
         date_pattern = r"(\d{4}-\d{2}-\d{2})"

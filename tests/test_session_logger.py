@@ -4,6 +4,7 @@ from pathlib import Path
 from app.session_logger import (
     close_session,
     create_session,
+    generate_session_id,
     mark_resolution_check,
     mark_satisfaction,
     record_turn,
@@ -70,3 +71,18 @@ def test_session_logger_records_turns_and_closes_session(tmp_path):
     assert payload["turns"][0]["pending_fields"] == ["order_id"]
     assert payload["turns"][1]["entities"]["booking_date"] is None
     assert payload["events"][-1]["event"] == "session_closed"
+
+
+def test_generate_session_id_uses_numbers_then_letters(tmp_path, monkeypatch):
+    class FixedDatetime:
+        @classmethod
+        def now(cls, timezone):
+            from datetime import datetime
+
+            return datetime(2026, 9, 14, tzinfo=timezone)
+
+    monkeypatch.setattr("app.session_logger.datetime", FixedDatetime)
+    for number in range(1, 100):
+        (tmp_path / f"140926{number}.json").touch()
+
+    assert generate_session_id(str(tmp_path)) == "14092699a"

@@ -36,6 +36,7 @@ def test_chat_with_valid_message_returns_chat_response(client, mock_llm_client):
         assert "backend_result" in data
         assert "reply" in data
         assert "language" in data
+        assert response.headers["X-Session-ID"]
 
 
 def test_chat_accepts_session_id(client, mock_llm_client):
@@ -49,6 +50,27 @@ def test_chat_accepts_session_id(client, mock_llm_client):
         )
 
         assert response.status_code == 200
+
+
+def test_chat_reuses_session_context_across_turns(client, mock_llm_client):
+    with patch("main.LLMClient") as MockLLM, patch("main.get_chat_api_key", return_value="test-key"):
+        MockLLM.return_value = mock_llm_client
+
+        first = client.post(
+            "/chat",
+            json={"message": "Where is my order?", "session_id": "session-continuity"},
+            headers={"X-API-Key": "test-key"},
+        )
+        second = client.post(
+            "/chat",
+            json={"message": "AB-123", "session_id": "session-continuity"},
+            headers={"X-API-Key": "test-key"},
+        )
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert second.json()["intent"] == "order_status"
+        assert second.json()["entities"]["order_id"] == "AB-123"
 
 
 def test_chat_records_multiple_turns_in_one_session_file(client, mock_llm_client, tmp_path):

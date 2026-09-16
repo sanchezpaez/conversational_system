@@ -41,6 +41,7 @@ To change the file location, set `ORDERS_DB_PATH` in `.env`.
 - Multi-turn memory is supported via optional `session_id` in `/chat` requests.
 - When clarification is required, the agent stores missing context per `session_id`.
 - Next user turns in the same session can provide only missing fields (for example, just date).
+- The runtime keeps a single agent instance alive for the server process so the in-memory session context survives across requests in the same session.
 - Each response includes per-session metrics in `metrics`:
    - `turns_to_resolution`
    - `clarification_rate`
@@ -52,6 +53,14 @@ Example multi-turn flow:
 - Turn 1: `{"message": "I need to change my booking", "session_id": "s1"}`
 - Turn 2: `{"message": "Order 7821", "session_id": "s1"}`
 - Turn 3: `{"message": "2026-05-10", "session_id": "s1"}`
+
+### UI session flow
+
+- The browser UI keeps a session alive while the page remains open.
+- Quick buttons are generic intent triggers, not literal user text; they are intended to start a flow, for example `"Where is my order?"` for `order_status`.
+- The bot then asks for the missing required data, such as the order ID.
+- If the user writes a value like `AB-123` in the next step, the same session continues and the agent resolves the pending field without losing context.
+- Refreshing the page creates a new server-side session ID, which is used for a fresh conversation.
 
 ## Quick Start
 
@@ -117,7 +126,7 @@ uv run python scripts/demo.py --batch
    ```
 
 2. Open [http://127.0.0.1:8000/ui](http://127.0.0.1:8000/ui)
-3. Enter `CHAT_API_KEY` and your message. The UI generates a new `session_id` on each page refresh; keep the page open to continue the same conversation.
+3. Enter `CHAT_API_KEY` and your message. The server assigns a short session ID in the form `DDMMYY1`; it stays invisible in the UI and is reused while the page remains open. Refresh the page to start a separate conversation.
 4. You can also use the quick-action buttons to send common test requests.
 
 ### Option 4: Run with Docker (Phase 7.1)

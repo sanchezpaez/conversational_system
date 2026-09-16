@@ -1,8 +1,7 @@
 import logging
-import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Response
 from fastapi.responses import HTMLResponse
 
 from app.agent import SupportAgent
@@ -21,7 +20,7 @@ from app.conversation_memory import InMemoryConversationMemory
 from app.exceptions import ConfigurationError
 from app.llm import LLMClient
 from app.models import ChatRequest, ChatResponse
-from app.session_logger import create_session, record_turn
+from app.session_logger import create_session, generate_session_id, record_turn
 from app.sqlite_memory import SQLiteConversationMemory
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -30,6 +29,7 @@ load_environment()
 app = FastAPI(title="Customer Support AI Agent Prototype")
 UI_FILE_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
 SESSION_DIR = str(Path(__file__).resolve().parent / "data" / "sessions")
+_RUNTIME_MEMORY: InMemoryConversationMemory | SQLiteConversationMemory | None = None
 
 
 def build_agent() -> SupportAgent:
@@ -37,13 +37,14 @@ def build_agent() -> SupportAgent:
     memory_backend = get_memory_backend()
     backend_mode = get_backend_mode()
 
-    # Runtime selection of the session memory backend.
-    # If MEMORY_BACKEND=sqlite, agent state is persisted on disk via SQLite.
-    if memory_backend == "sqlite":
-        memory = SQLiteConversationMemory(db_path=get_sqlite_db_path())
-    else:
-        # Default backend keeps state only in process memory.
-        memory = InMemoryConversationMemory()
+    global _RUNTIME_MEMORY
+    if _RUNTIME_MEMORY is None or _RUNTIME_MEMORY.__class__.__name__ != (
+        "SQLiteConversationMemory" if memory_backend == "sqlite" else "InMemoryConversationMemory"
+    ):
+        if memory_backend == "sqlite":
+            _RUNTIME_MEMORY = SQLiteConversationMemory(db_path=get_sqlite_db_path())
+        else:
+            _RUNTIME_MEMORY = InMemoryConversationMemory()
 
     if backend_mode == "real":
         backend_client = RealBackendClient(
@@ -53,11 +54,11 @@ def build_agent() -> SupportAgent:
     else:
         backend_client = MockBackendClient()
 
-    return SupportAgent(llm_client=llm_client, memory=memory, backend_client=backend_client)
+    return SupportAgent(llm_client=llm_client, memory=_RUNTIME_MEMORY, backend_client=backend_client)
 
 
 def _log_chat_turn(session_id: str | None, message: str, response: ChatResponse) -> str:
-    effective_session_id = session_id or uuid.uuid4().hex
+    effective_session_id = session_id or generate_session_id(SESSION_DIR)
     session_dir = SESSION_DIR
 
     try:
@@ -107,6 +108,7 @@ def ui() -> HTMLResponse:
 @app.post("/chat", response_model=ChatResponse)
 def chat(
     request: ChatRequest,
+    response: Response,
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ) -> ChatResponse:
     try:
@@ -115,10 +117,11 @@ def chat(
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         agent = build_agent()
-        effective_session_id = request.session_id or uuid.uuid4().hex
-        response = agent.process(request.message, effective_session_id)
-        _log_chat_turn(effective_session_id, request.message, response)
-        return response
+        effective_session_id = request.session_id or generate_session_id(SESSION_DIR)
+        chat_response = agent.process(request.message, effective_session_id)
+        _log_chat_turn(effective_session_id, request.message, chat_response)
+        response.headers["X-Session-ID"] = effective_session_id
+        return chat_response
     except HTTPException as error:
         raise error
     except ConfigurationError as error:

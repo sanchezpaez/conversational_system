@@ -65,6 +65,14 @@ class SupportAgent:
 
         intent_decision = self.llm_client.classify_intent(message)
         intent_name = intent_decision.intent
+
+        if (
+            prior_state.pending_fields
+            and prior_state.last_intent is not None
+            and intent_name == "fallback"
+        ):
+            intent_name = prior_state.last_intent
+
         self._log_event(
             event="intent_detected",
             session_id=session_id,
@@ -76,6 +84,7 @@ class SupportAgent:
             prior_state.pending_fields
             and prior_state.last_intent is not None
             and intent_name != prior_state.last_intent
+            and intent_name != "fallback"
         ):
             self._log_event(
                 event="intent_changed",

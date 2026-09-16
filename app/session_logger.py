@@ -12,6 +12,27 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def generate_session_id(base_dir: str | None = None) -> str:
+    root = Path(base_dir) if base_dir else Path(SESSION_DIR)
+    root = root if root.is_absolute() else (PROJECT_ROOT / root)
+    root.mkdir(parents=True, exist_ok=True)
+    date_prefix = datetime.now(timezone.utc).strftime("%d%m%y")
+    existing_ids = {path.stem for path in root.glob(f"{date_prefix}*.json")}
+
+    for number in range(1, 100):
+        session_id = f"{date_prefix}{number}"
+        if session_id not in existing_ids:
+            return session_id
+
+    suffix_index = 0
+    while True:
+        suffix = chr(ord("a") + suffix_index)
+        session_id = f"{date_prefix}99{suffix}"
+        if session_id not in existing_ids:
+            return session_id
+        suffix_index += 1
+
+
 def _session_path(session_id: str, base_dir: str | None = None) -> Path:
     candidate = Path(base_dir) if base_dir else Path(SESSION_DIR)
     root = candidate if candidate.is_absolute() else (PROJECT_ROOT / candidate)
